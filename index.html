@@ -895,6 +895,64 @@ body{background:var(--sk-bg);background-attachment:fixed}
 .side .sw-acct{display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:default}
 .side .sw-out{border:0;background:none;color:var(--cy);font:inherit;cursor:pointer;text-decoration:underline;padding:0}
 .side .sw-master{cursor:pointer;background:#fff8d6;border-color:#e8c766;color:#8a6500}
+
+/* ---------- 귤나무 성장기 ---------- */
+.pf-stage{align-self:flex-start;border:1px solid #f0c27a;background:#fff8e8;color:#b35d00;border-radius:10px;font-family:var(--f-cy);font-size:11px;padding:0 6px;cursor:pointer;margin:1px 0}
+.side .grow-pill{cursor:pointer;background:#f1fbe8;border-color:#a8d58a;color:#3d7a1f}
+.pc-grow{border:1px dashed #e0a24d;background:#fffaf0;color:#a35400;border-radius:8px;padding:4px 8px;font:inherit;font-size:12px;cursor:pointer;text-align:left}
+.grow-tabs{margin-bottom:8px}
+.grow-head{display:flex;gap:10px;align-items:center;background:#fffaf0;border:1px solid #f3d7a8;border-radius:10px;padding:8px 10px;margin-bottom:8px}
+.gh-icon{font-size:38px;line-height:1}
+.gh-name{font-family:var(--f-cy);font-size:14px;color:#1d4f7a}
+.gh-line{margin:2px 0 0;font-family:var(--f-hand);font-size:16px;color:#6b4a9c}
+.grow-ladder{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.grow-ladder li{display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid #e3e3e3;border-radius:8px;background:#fff;opacity:.72;flex-wrap:wrap}
+.grow-ladder li.ok{opacity:1;background:#f3fbec;border-color:#bfe2a6}
+.grow-ladder li.now{outline:2px solid #f39800;outline-offset:-1px}
+.gl-i{font-size:20px;width:26px;text-align:center}
+.gl-t{flex:1;min-width:160px;font-size:13px}
+.gl-c{color:var(--muted);font-size:12px}
+.gl-ck{font-family:var(--f-cy);color:#3d7a1f}
+.grow-tl{list-style:none;margin:0;padding:0 0 0 10px;border-left:2px dotted #f0b25c;display:flex;flex-direction:column;gap:5px}
+.grow-tl li{display:flex;gap:8px;font-size:13px;flex-wrap:wrap}
+.tl-d{font-family:var(--f-cy);font-size:11px;color:#e07a19;white-space:nowrap}
+.tl-t{flex:1;min-width:0;word-break:keep-all}
+.grow-up{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.gu-icons{font-size:44px;display:flex;align-items:center;gap:10px}
+.gu-arr{font-size:18px;color:#f39800;animation:guBlink .8s steps(2) infinite}
+.gu-to{animation:guPop .7s ease-out}
+.gu-name{font-family:var(--f-cy);font-size:15px;color:#1d4f7a}
+.gu-line{margin:0;font-family:var(--f-hand);font-size:20px;color:#6b4a9c}
+@keyframes guPop{0%{transform:scale(.3) rotate(-20deg)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes guBlink{50%{opacity:.2}}
+.case-banner{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;border:1px solid #f3c98b;background:linear-gradient(90deg,#fff6e3,#fffdf6);border-radius:10px;padding:8px 10px;margin-bottom:10px;cursor:pointer;font:inherit}
+.case-banner b{font-family:var(--f-cy);color:#b35d00;font-size:13px}
+.case-banner span{font-size:12px;color:#5a4a33}
+.case-sum{background:#f1fbe8;border:1px solid #bfe2a6;border-radius:10px;padding:8px 10px;margin-bottom:8px}
+.case-sum b{font-family:var(--f-cy);font-size:16px;color:#3d7a1f}
+.case-sum .note{margin:4px 0 0}
+.case-form{border:1px dashed #9ec9e6;border-radius:10px;padding:6px 10px;margin-bottom:10px;background:#f7fbff}
+.case-form summary{cursor:pointer;font-family:var(--f-cy);font-size:13px;color:var(--cy)}
+.case-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.case-nums input{width:100%;box-sizing:border-box}
+.case-list{display:flex;flex-direction:column;gap:6px}
+.case-card{border:1px solid #e3e3e3;border-radius:10px;padding:8px 10px;background:#fff}
+.cc-top{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.cc-work{font-size:14px}
+.cc-h{font-family:var(--f-cy);font-size:12px;color:#3d7a1f;background:#eaf7df;border-radius:8px;padding:0 6px}
+.cc-ba{font-size:13px;margin:3px 0}
+.cc-b{color:#999;text-decoration:line-through}
+.cc-a{color:#e07a19;font-weight:700}
+.cc-note{margin:4px 0;font-family:var(--f-hand);font-size:16px;color:#6b4a9c}
+.cc-by{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.farm-sum{font-size:13px;margin:0 0 8px}
+.farm-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.farm-list li{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 8px;border:1px solid #e3e3e3;border-radius:8px;background:#fff}
+.farm-list li.mine{border-color:#f3c98b;background:#fffaf0}
+.fm-d{font-size:13px;min-width:110px}
+.fm-t{flex:1;display:flex;flex-wrap:wrap;gap:1px}
+.fm-tree{border:0;background:none;font-size:18px;line-height:1;padding:1px;cursor:pointer}
+@media (max-width:520px){.case-nums{grid-template-columns:1fr 1fr}.case-nums .field:last-child{grid-column:1/-1}}
 @media (prefers-reduced-motion:reduce){
   .char.walking .sp{animation:none}
   .gyul.fly{animation:none}
@@ -935,7 +993,7 @@ body{background:var(--sk-bg);background-attachment:fixed}
             <button type="button" data-go="maker">🛠 AI 공방 가기</button>
           </div></details></div>
         <button type="button" class="pf-badge" id="ilBadge" hidden></button>
-        <div class="pf-name"><span class="pf-nick" id="pfNick">손님</span><span class="pf-dept" id="pfDept">캐릭터를 만들어 주세요</span><span class="pf-home" id="pfHome"></span><span class="pf-date" id="pfDate"></span></div>
+        <div class="pf-name"><span class="pf-nick" id="pfNick">손님</span><button type="button" class="pf-stage" id="pfStage" hidden title="나의 귤나무 성장기"></button><span class="pf-dept" id="pfDept">캐릭터를 만들어 주세요</span><span class="pf-home" id="pfHome"></span><span class="pf-date" id="pfDate"></span></div>
         <dl class="pf-stats">
           <div><dt>내가 올린 도구</dt><dd id="pfMine">0</dd></div>
           <div><dt>즐겨찾기</dt><dd id="pfFav">0</dd></div>
@@ -1079,6 +1137,7 @@ body{background:var(--sk-bg);background-attachment:fixed}
         <span class="pill" id="toolCount">등록 도구 0개</span>
         <button type="button" class="pill gyul-pill" id="gyulPill" title="귤 가게 열기">🍊 내 귤 0개</button>
         <button type="button" class="pill mis-pill" id="misPill" title="오늘의 미션 열기">🎯 오늘의 미션 0/3</button>
+        <button type="button" class="pill grow-pill" id="growPill" hidden title="나의 귤나무 성장기">🌰 씨앗 · 나의 귤나무</button>
         <span class="pill mode" id="modePill" hidden>이 브라우저에만 저장돼요</span>
         <button type="button" class="pill sw-spk" id="swSparkle" hidden>✨ 반짝이 커서 ON</button>
         <span class="pill sw-acct" id="swAcct" hidden></span>
@@ -1760,7 +1819,7 @@ setTimeout(()=>bubble(npc,'어서 와요! 무대도 있고 평상도 있어요~'
 // 나
 const meEl=makeCharEl('me');placeChar(meEl,me.x,me.y,0,1);room.append(meEl);
 meEl.addEventListener('click',e=>{e.stopPropagation();const d=myData();bubble(meEl,d&&d.msg?str(d.msg,40):'안녕하세요!');});
-function updateMyChar(){const d=myData();meEl.querySelector('.sp').innerHTML=charSVG(d?d.look:DEFAULT_LOOK);setNick(meEl,'나 · '+(d?str(d.nick,10):'손님'),d?d.look:DEFAULT_LOOK);}
+function updateMyChar(){const d=myData();meEl.querySelector('.sp').innerHTML=charSVG(d?d.look:DEFAULT_LOOK);setNick(meEl,(d?stIcon(myId)+' ':'')+'나 · '+(d?str(d.nick,10):'손님'),d?d.look:DEFAULT_LOOK);}
 let moveT=null;
 function moveMe(x,y,cb){
   if(me.sit>=0){me.sit=-1;meEl.classList.remove('seated');try{updateTalk();}catch(e){}}
@@ -1805,7 +1864,7 @@ function renderPeers(){
     const lookKey=JSON.stringify(cleanLook(pr.look));
     if(el._look!==lookKey){el._look=lookKey;el.querySelector('.sp').innerHTML=charSVG(pr.look);}
     el._uid=p.userId;el._seat=seat;el.classList.toggle('seated',seat>=0);el.classList.toggle('onstage',!!pr.stage);
-    setNick(el,(str(pr.nick,10)||'동료')+(p.isMe?' (내 다른 창)':''),pr.look);
+    setNick(el,(p.userId&&chars[p.userId]?stIcon(p.userId)+' ':'')+(str(pr.nick,10)||'동료')+(p.isMe?' (내 다른 창)':''),pr.look);
     if(el._x!==x||el._y!==y){const dur=travel(el._x,el._y,x,y);placeChar(el,x,y,dur,pr.dir);el._x=x;el._y=y;el.classList.add('walking');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('walking'),dur);}
     if(typeof pr.sayId==='number'&&pr.sayId!==el._say){if(el._say!==undefined&&str(pr.say,40))bubble(el,str(pr.say,40),6000);el._say=pr.sayId;}
     if(typeof pr.actId==='number'&&pr.actId!==el._act){if(el._act!==undefined&&pr.act==='dance'){el.classList.add('dance');clearTimeout(el._dt);el._dt=setTimeout(()=>el.classList.remove('dance'),4000);}if(el._act!==undefined&&pr.act==='emo'){try{floatEmo(el,str(pr.emo,3));}catch(e){}}el._act=pr.actId;}
@@ -1824,7 +1883,7 @@ function renderResidents(){
     if(!el){const hv=hash(id),sp=RES_SPOTS[ri%RES_SPOTS.length];el=makeCharEl('sleep');placeChar(el,sp[0],sp[1],0,(hv&1)?1:-1);room.append(el);residentEls.set(id,el);
       el.addEventListener('click',ev=>{ev.stopPropagation();const cc=chars[id];if(cc){openProfile(id);return;}bubble(el,cc?([str(cc.dept,20),str(cc.msg,40)].filter(Boolean).join(' · ')||'지금은 자리에 없어요'):'지금은 자리에 없어요');});}
     el.querySelector('.sp').innerHTML=charSVG(c.look);
-    setNick(el,str(c.nick,10)||'동료',c.look);
+    setNick(el,stIcon(id)+' '+(str(c.nick,10)||'동료'),c.look);
   });
 }
 function updateOnline(){
@@ -2056,6 +2115,8 @@ function renderProfile(){
   $('#pfMood').textContent=MOODS[d?int(d.mood,MOODS.length):0];
   $('#pfMsg').textContent=d?(str(d.msg,40)||'▸ EDIT 눌러서....\n감성 한 줄... 남겨 주세ㅇㅛ...^^'):'캐릭터를 만들고 광장에 들어와 보세요';
   $('#editBtn').textContent=d?'▸ EDIT':'▸ 캐릭터 만들기';$('#pfHome').textContent=d?(str(d.nick,10)+'의 미니홈피'):'';$('#pfRoomBtn').hidden=!d;try{renderSide();}catch(e){}try{renderRecent();}catch(e){}try{applyHpSkin();}catch(e){}try{renderMisPill();}catch(e){}
+  try{const ps=$('#pfStage'),gp=$('#growPill');if(d){const g=GROW[dispStage(myId)];ps.hidden=false;ps.textContent=g.i+' '+g.n;gp.hidden=false;gp.textContent=g.i+' '+g.n+' · 나의 귤나무';}else{ps.hidden=true;gp.hidden=true;}}catch(e){}
+  try{growTick();}catch(e){}
   $('#pfMine').textContent=String(tools.filter(t=>myId&&t.author===myId).length);
   $('#pfFav').textContent=String(myFavs().length);
 }
@@ -3541,6 +3602,7 @@ function openProfile(uid){
   openModal(mine?'내 프로필':`${nickOf(uid)}님`,h('div',{class:'pc'},av,h('div',{class:'pc-info'},
     h('b',{class:'pc-nick',text:nickOf(uid)}),h('span',{class:'note',text:str(c.dept,20)||'소속 미입력'}),
     h('span',{text:'오늘의 기분 · '+MOODS[int(c.mood,MOODS.length)]}),
+    h('button',{type:'button',class:'pc-grow',text:GROW[dispStage(uid)].i+' '+GROW[dispStage(uid)].n+' · 귤나무 성장기 보기 ▸',onclick:()=>{closeModal();openGrow(uid);}}),
     bi!=null?h('span',{class:'pc-bgm',text:'♪ 대표곡 · '+TRACKS[bi].title}):null,
     h('p',{class:'pf-msg',text:str(c.msg,40)||'…'}),
     mine?null:ilchonBox(uid),
@@ -4101,6 +4163,7 @@ function renderLed(){
   parts.push('★ 오늘의 투표 · '+p.q);
   try{parts.push('★ 오늘의 미션 · '+todayMissions().map(k=>MISSIONS[k].t).join(' / '));}catch(e){}
   parts.push(mm?`★ 오늘 붙은 포스트잇 ${mm}장`:'★ 포스트잇 벽이 비어 있어요');
+  try{growLed().forEach(x=>parts.push(x));}catch(e){}
   parts.push('★ 오늘도 칼퇴 기원 ♡');
   const tx=parts.join('     ');
   if(el.textContent!==tx){el.textContent=tx;el.style.animationDuration=Math.max(14,tx.length*0.32)+'s';}
@@ -4214,7 +4277,7 @@ function showDonation(g){
 window.addEventListener('resize',()=>{if(me.stage){const sp=stagePos();me.x=sp.x;me.y=sp.y;placeChar(meEl,sp.x,sp.y,0,me.dir);}});
 
 /* ===================== 꿀팁 탭 ===================== */
-function renderTipsView(){const b=$('#tipsBody');if(!b)return;b.replaceChildren();renderTips(b);try{missionEvent('visit_tips');}catch(e){}}
+function renderTipsView(){const b=$('#tipsBody');if(!b)return;b.replaceChildren();try{b.append(caseBanner());}catch(e){}renderTips(b);try{missionEvent('visit_tips');}catch(e){}}
 function rerenderTips(){if(tab==='tips')renderTipsView();else renderMaker();}
 $('#tipsToMaker').addEventListener('click',()=>{mk.sub='guide';setTab('maker');});
 
@@ -4230,7 +4293,8 @@ var MISSIONS={
   kit:{t:'AI 공방 「만들 때 쓰는 재료」 구경하기',r:5,go:()=>{mk.sub='kit';setTab('maker');},g:'learn'},
   review:{t:'써 본 도구에 후기 남기기',r:10,go:()=>setTab('tools'),g:'give'},
   tip_share:{t:'내 바이브코딩 꿀팁 하나 나누기',r:20,go:()=>{mk.tipStage='peer';setTab('tips');},g:'give'},
-  memo:{t:'포스트잇에 "오늘 AI로 한 일" 붙이기',r:5,go:()=>{setTab('home');setTimeout(openMemoWall,150);},g:'give'}
+  memo:{t:'포스트잇에 "오늘 AI로 한 일" 붙이기',r:5,go:()=>{setTab('home');setTimeout(openMemoWall,150);},g:'give'},
+  case:{t:'업무 전/후 사례 카드 남기기',r:30,go:()=>openGrow(myId,'case'),g:'give'}
 };
 var MIS_BONUS=10;
 function todayMissions(){
@@ -4283,6 +4347,230 @@ function openMissions(){
 }
 $('#misPill').addEventListener('click',openMissions);
 
+/* ===================== 🍊 귤나무 성장기 =====================
+   실제로 한 일(도구 써 보기 → 후기·꿀팁 → 요청 → 첫 도구 → 남이 내 도구 사용 → 사례 공유)에 따라 캐릭터가 자라요.
+   기록은 모두 내 캐릭터 정보(grow · cases)에만 저장 → 어느 저장소에서나 같은 방식 */
+var LOADED={tools:0,reviews:0,requests:0,tips:0};
+var GROW=[
+  {i:'🌰',n:'씨앗',c:'탐라 AI 홈피에 가입하기',l:'나도 이제 AI 한ㄷㅏ.. ㅠ',go:null},
+  {i:'🌱',n:'새싹',c:'AI 도구 3개 직접 써 보기',l:'생각보다.. 별거 없네..?',go:()=>setTab('tools')},
+  {i:'🌼',n:'귤꽃',c:'써 본 도구에 후기 남기기 · 또는 꿀팁 나누기',l:'내가 쓴 글에 누가 공감 눌러줌 ㅋ',go:()=>{mk.tipStage='peer';setTab('tips');}},
+  {i:'🟢',n:'풋귤',c:'AI 공방에서 정리해 「도구 요청」 올리기',l:'나도 만들고 싶은 게 생겼ㄷㅏ..',go:()=>{mk.sub='helper';setTab('maker');}},
+  {i:'🍊',n:'귤',c:'내가 만든 첫 도구 올리기',l:'★오늘부로 바이브코더★',go:()=>{mk.sub='guide';setTab('maker');}},
+  {i:'🌳',n:'귤나무',c:'다른 직원이 내 도구를 쓰거나 ★ 누르기',l:'내 도구가 남의 야근을 줄였ㄷㅏ..',go:null},
+  {i:'🏡',n:'과수원지기',c:'업무 전/후 사례 남기기 + 내 도구를 쓴 직원 3명',l:'탐라 AI 전도사.. 그게 바로 나ㅇㅑ',go:()=>openGrow(myId,'case')}
+];
+function growOf(uid){const c=chars[uid];return objOf(c&&c.grow);}
+function usedOf(uid){return arrOf(growOf(uid).used).filter(x=>typeof x==='string').slice(0,80);}
+function num(v,max){v=Math.round(Number(v));return Number.isFinite(v)&&v>=0?Math.min(v,max):0;}
+function cleanCase(v){if(!v||typeof v!=='object'||typeof v.id!=='string')return null;const work=str(v.work,30);if(!work)return null;
+  return{id:str(v.id,40),work,b:num(v.b,6000),a:num(v.a,6000),n:num(v.n,200),tool:str(v.tool,40),note:str(v.note,80),ts:Number(v.ts)||0};}
+function casesOf(uid){const c=chars[uid];return arrOf(c&&c.cases).map(cleanCase).filter(Boolean).slice(-10);}
+function caseHours(x){return Math.max(0,x.b-x.a)*x.n/60;}
+function allCases(){const out=[];Object.keys(chars).forEach(u=>casesOf(u).forEach(x=>out.push({...x,by:u})));return out.sort((a,b)=>b.ts-a.ts);}
+function fmtH(hh){return hh>=10?String(Math.round(hh)):String(Math.round(hh*10)/10);}
+function myToolIds(uid){return tools.filter(t=>uid&&t.author===uid&&!t.sample&&!t.builtin).map(t=>t.id);}
+function toolFans(uid){
+  const ids=new Set(myToolIds(uid));if(!ids.size)return 0;const fans=new Set();
+  Object.keys(chars).forEach(u=>{if(u===uid)return;const c=chars[u];if(usedOf(u).some(x=>ids.has(x))||arrOf(c&&c.favs).some(x=>ids.has(x)))fans.add(u);});
+  return fans.size;
+}
+function growChecks(uid){
+  if(!chars[uid])return GROW.map(()=>false);
+  const fans=toolFans(uid);
+  return [true,usedOf(uid).length>=3,reviews.some(r=>r.by===uid&&r.text)||peerTips.some(t=>t.by===uid),requests.some(r=>r.by===uid),
+    myToolIds(uid).length>0,fans>=1,casesOf(uid).length>0&&fans>=3];
+}
+var growMemo={t:0,m:{}};
+function stageOf(uid){
+  const now=Date.now();if(now-growMemo.t>700)growMemo={t:now,m:{}};
+  if(uid in growMemo.m)return growMemo.m[uid];
+  let st=0;growChecks(uid).forEach((ok,i)=>{if(ok)st=i;});return (growMemo.m[uid]=st);
+}
+function dispStage(uid){const g=growOf(uid);const saved=Number.isInteger(g.stage)&&g.stage>=0&&g.stage<GROW.length?g.stage:0;return Math.max(stageOf(uid),saved);}
+function stIcon(uid){try{return GROW[dispStage(uid)].i;}catch(e){return '🌰';}}
+function histOf(uid){return arrOf(growOf(uid).hist).filter(x=>x&&Number.isInteger(x.s)&&x.s>=0&&x.s<GROW.length).map(x=>({s:x.s,ts:Number(x.ts)||0})).slice(-12);}
+function dstr(ts){try{return new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date(ts)).replace(/-/g,'.');}catch(e){return '';}}
+
+/* 내가 도구를 열면 기록 (새 도구일 때만 저장) */
+function markUsed(id){
+  if(!id||!myData()||!canWrite)return;
+  if(usedOf(myId).includes(id))return;
+  patchMine(d=>{const g=objOf(d.grow);const u=arrOf(g.used).filter(x=>typeof x==='string');if(u.includes(id))return {};return {grow:{...g,used:[...u,id].slice(-80)}};}).catch(()=>{});
+}
+document.addEventListener('click',e=>{const a=e.target.closest('.act-use[data-tool]');if(a)try{markUsed(a.dataset.tool);}catch(err){}},true);
+
+/* 단계가 오르면 저장하고 축하 · 다른 직원이 오르면 광장 채팅에 소식 */
+var growBusy=false,growSeen=null;
+function growReady(){return LOADED.tools&&LOADED.reviews&&LOADED.requests&&LOADED.tips;}
+function growTick(){
+  if(!growReady())return;
+  // 다른 직원 소식
+  const cur={};Object.keys(chars).forEach(u=>{const g=growOf(u);if(Number.isInteger(g.stage))cur[u]=g.stage;});
+  if(growSeen){Object.keys(cur).forEach(u=>{if(u!==myId&&growSeen[u]!=null&&cur[u]>growSeen[u]){const g=GROW[cur[u]];chatSys.push({sys:1,t:`🎉 ${nickOf(u)}님 「${g.i} ${g.n}」 달성! ${g.l}`,ts:Date.now()});chatSys=chatSys.slice(-10);try{renderChat();}catch(e){}}});}
+  growSeen=cur;
+  // 내 단계
+  const d=myData();if(!d||!canWrite||growBusy)return;
+  const g=growOf(myId),now=stageOf(myId),saved=Number.isInteger(g.stage)?g.stage:null;
+  if(saved!==null&&now<=saved)return;
+  growBusy=true;const first=saved===null;
+  patchMine(dd=>{const gg=objOf(dd.grow);const hist=arrOf(gg.hist).filter(x=>x&&Number.isInteger(x.s));
+    const add=first?[{s:0,ts:Number(dd.created)||Date.now()},...(now>0?[{s:now,ts:Date.now()}]:[])]:[{s:now,ts:Date.now()}];
+    return {grow:{...gg,stage:now,hist:[...hist,...add].slice(-12)}};})
+    .then(()=>{growSeen&&(growSeen[myId]=now);if(!first)growCelebrate(saved,now);})
+    .catch(()=>{}).finally(()=>{growBusy=false;});
+}
+setInterval(()=>{if(!document.hidden)try{growTick();}catch(e){}},6000);
+function growCelebrate(from,to){
+  const g=GROW[to],nx=GROW[to+1];
+  [523,659,784,1047,1319,1568].forEach((f,i)=>beep(f,0.12,'square',0.035,i*0.09));
+  chatSys.push({sys:1,t:`🎉 ${nickOf(myId)}님 「${g.i} ${g.n}」 달성! ${g.l}`,ts:Date.now()});try{renderChat();}catch(e){}
+  try{bubble(meEl,g.i+' '+g.l,5000);}catch(e){}
+  if(MODAL)return;
+  openModal('🎉 레벨 업!',h('div',{class:'grow-up'},
+    h('div',{class:'gu-icons'},h('span',{class:'gu-from',text:GROW[from].i}),h('span',{class:'gu-arr',text:'▶'}),h('span',{class:'gu-to',text:g.i})),
+    h('b',{class:'gu-name',text:`「${g.n}」 단계가 되었어요`}),
+    h('p',{class:'gu-line',text:g.l}),
+    nx?h('p',{class:'note',text:`다음 단계 ${nx.i} ${nx.n} · ${nx.c}`}):h('p',{class:'note',text:'최고 단계예요. 이제 탐라의 AI 전도사!'}),
+    h('div',{class:'modal-actions'},h('button',{type:'button',class:'btn primary',text:'나의 성장기 보기',onclick:()=>{closeModal();openGrow(myId);}}))),null,true);
+}
+
+/* 전광판 소식 */
+function growLed(){
+  const out=[],now=Date.now(),ev=[];
+  Object.keys(chars).forEach(u=>histOf(u).forEach(x=>{if(x.s>0&&now-x.ts<86400000)ev.push({u,s:x.s,ts:x.ts});}));
+  ev.sort((a,b)=>b.ts-a.ts).slice(0,2).forEach(e=>out.push(`★ ${nickOf(e.u)}님 ${GROW[e.s].i} ${GROW[e.s].n} 달성!`));
+  const cs=allCases();if(cs.length){const hh=cs.reduce((a,x)=>a+caseHours(x),0);out.push(`★ 탐라 직원들이 AI로 줄인 시간 · 한 달 약 ${fmtH(hh)}시간 (사례 ${cs.length}개)`);}
+  return out;
+}
+
+/* 꿀팁 탭 맨 위 배너 */
+function caseBanner(){
+  const cs=allCases(),hh=cs.reduce((a,x)=>a+caseHours(x),0);
+  return h('button',{type:'button',class:'case-banner',onclick:()=>openGrow(myId,'case')},
+    h('b',{text:'📈 업무 전/후 사례 카드'}),
+    h('span',{text:cs.length?`탐라 직원들이 AI로 한 달에 약 ${fmtH(hh)}시간을 줄였어요 · 사례 ${cs.length}개 보기 ▸`:'아직 사례가 없어요. 첫 번째 사례의 주인공이 되어 보세요 ▸'}));
+}
+
+/* 성장기 창: 나의 성장기 · 사례 카드 · 탐라 과수원 */
+function openGrow(uid,tab0){
+  uid=uid||myId;if(!chars[uid]){if(!myData()){openCreator(false);return;}uid=myId;}
+  let tabNow=tab0||'me';const mine=uid===myId;
+  const box=h('div',{class:'grow-box'});
+  const tabs=h('div',{class:'pal-cats grow-tabs'});
+  const body=h('div',{class:'grow-body'});
+  const draw=()=>{
+    const ae=document.activeElement;if(ae&&body.contains(ae)&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName))return;
+    tabs.replaceChildren(...[['me',mine?'🌱 나의 성장기':'🌱 '+nickOf(uid)+'님 성장기'],['case','📈 사례 카드'],['farm','🗺 탐라 과수원']].map(([k,l])=>
+      h('button',{type:'button',class:'chip-btn'+(tabNow===k?' on':''),'aria-pressed':String(tabNow===k),onclick:()=>{tabNow=k;draw();}},l)));
+    body.replaceChildren(tabNow==='case'?caseView(draw):tabNow==='farm'?farmView():meView(uid));
+  };
+  box.append(tabs,body);draw();
+  openModal('🍊 귤나무 성장기',box,'실제로 해 본 만큼 캐릭터가 자라요. 순위는 없어요, 각자의 속도로 ♡',true);
+  MODAL._grow=draw;
+}
+function meView(uid){
+  const mine=uid===myId,st=dispStage(uid),ck=growChecks(uid),g=GROW[st];
+  const used=usedOf(uid).length,fans=toolFans(uid);
+  const prog=[null,`(${Math.min(used,3)}/3)`,null,null,null,fans?`(${fans}명)`:null,`(사례 ${casesOf(uid).length}개 · 쓴 직원 ${Math.min(fans,3)}/3)`];
+  const head=h('div',{class:'grow-head'},h('span',{class:'gh-icon',text:g.i}),h('div',{},h('b',{class:'gh-name',text:`${mine?'나':nickOf(uid)}는 지금 「${g.n}」`}),h('p',{class:'gh-line',text:g.l})));
+  let nextShown=false;
+  const ladder=h('ol',{class:'grow-ladder'},GROW.map((x,i)=>{
+    const ok=ck[i]||i<=st;
+    const li=h('li',{class:(ok?'ok':'')+(i===st?' now':'')},h('span',{class:'gl-i',text:x.i}),
+      h('span',{class:'gl-t'},h('b',{text:x.n}),' ',h('span',{class:'gl-c',text:x.c+(prog[i]&&!ck[i]?' '+prog[i]:'')})),
+      h('span',{class:'gl-ck',text:ok?'✔':'□'}));
+    if(mine&&!ok&&!nextShown&&x.go){nextShown=true;li.append(h('button',{type:'button',class:'btn sm primary',text:'하러 가기',onclick:()=>{closeModal();x.go();}}));}
+    return li;}));
+  // 히스토리
+  const ev=[];
+  histOf(uid).forEach(x=>ev.push({ts:x.ts,t:x.s===0?'🌰 탐라 AI 홈피에 씨앗을 심었ㄷㅏ..':`${GROW[x.s].i} 「${GROW[x.s].n}」이 되었ㄷㅏ.. ${GROW[x.s].l}`}));
+  tools.filter(t=>t.author===uid&&!t.sample&&!t.builtin).forEach(t=>ev.push({ts:t.created||0,t:`🛠 도구 「${str(t.name,24)}」를 올렸ㄷㅏ`}));
+  casesOf(uid).forEach(x=>ev.push({ts:x.ts,t:`📈 「${x.work}」 사례를 남겼ㄷㅏ (한 달 약 ${fmtH(caseHours(x))}시간 절약)`}));
+  if(!histOf(uid).length&&chars[uid].created)ev.push({ts:Number(chars[uid].created)||0,t:'🌰 탐라 AI 홈피에 씨앗을 심었ㄷㅏ..'});
+  ev.sort((a,b)=>a.ts-b.ts);
+  const tl=h('ul',{class:'grow-tl'},ev.slice(-20).map(e=>h('li',{},h('span',{class:'tl-d',text:dstr(e.ts)}),h('span',{class:'tl-t',text:e.t}))));
+  if(!ev.length)tl.append(h('li',{class:'empty',text:'아직 기록이 없ㄷㅏ.. 오늘이 첫 페이지ㄷㅏ..'}));
+  return h('div',{},head,ladder,h('h4',{class:'bgm-sub',text:'📜 '+(mine?'나의':nickOf(uid)+'님의')+' 히스토리'}),tl);
+}
+function caseView(redraw){
+  const cs=allCases(),hh=cs.reduce((a,x)=>a+caseHours(x),0);
+  const wrap=h('div',{});
+  wrap.append(h('div',{class:'case-sum'},h('b',{text:`한 달에 약 ${fmtH(hh)}시간`}),h('span',{text:` · 탐라 직원들이 AI로 줄인 시간 (사례 ${cs.length}개)`}),
+    h('p',{class:'note',text:'직원이 직접 적은 대략의 숫자예요. 정확한 통계가 아니라 "이만큼 편해졌다"는 감으로 봐 주세요.'})));
+  if(myData()&&canWrite)wrap.append(caseForm(redraw));
+  const list=h('div',{class:'case-list'});
+  cs.forEach(x=>{
+    const t=tools.find(tt=>tt.id===x.tool);
+    const card=h('div',{class:'case-card'},
+      h('div',{class:'cc-top'},h('b',{class:'cc-work',text:x.work}),h('span',{class:'cc-h',text:`월 약 ${fmtH(caseHours(x))}시간 절약`})),
+      h('div',{class:'cc-ba'},h('span',{class:'cc-b',text:`전 ${x.b}분`}),h('span',{text:' → '}),h('span',{class:'cc-a',text:`후 ${x.a}분`}),h('span',{class:'note',text:` · 한 달 ${x.n}번`})),
+      (t||x.tool)?h('div',{class:'note',text:'🛠 '+(t?str(t.name,30):x.tool)}):null,
+      x.note?h('p',{class:'cc-note',text:'“'+x.note+'”'}):null,
+      h('div',{class:'cc-by'},h('button',{type:'button',class:'nt',text:`${stIcon(x.by)} ${nickOf(x.by)}`,onclick:()=>{closeModal();openProfile(x.by);}}),h('span',{class:'note',text:' · '+dstr(x.ts)}),
+        x.by===myId?h('button',{type:'button',class:'btn sm ghost',text:'지우기',onclick:async ev=>{const bt=ev.currentTarget;if(!bt.dataset.sure){bt.dataset.sure='1';bt.textContent='한 번 더 누르면 지워져요';return;}try{await patchMine(d=>({cases:arrOf(d.cases).filter(c=>!(c&&c.id===x.id))}));toast('지웠어요');redraw();}catch(e){toast('지우지 못했어요');}}}):null));
+    list.append(card);});
+  if(!cs.length)list.append(h('p',{class:'empty',text:'아직 사례가 없ㄷㅏ.. 첫 번째 주인공 구합니ㄷㅏ..'}));
+  wrap.append(list);return wrap;
+}
+function caseForm(redraw){
+  const det=h('details',{class:'case-form'});det.append(h('summary',{text:'＋ 내 업무 전/후 사례 남기기'}));
+  const work=h('input',{id:'cs-work',maxlength:'30',placeholder:'예) 보도자료 초안 쓰기'});
+  const b=h('input',{id:'cs-b',type:'number',min:'0',max:'6000',inputmode:'numeric',placeholder:'예) 60'});
+  const a=h('input',{id:'cs-a',type:'number',min:'0',max:'6000',inputmode:'numeric',placeholder:'예) 15'});
+  const n=h('input',{id:'cs-n',type:'number',min:'0',max:'200',inputmode:'numeric',placeholder:'예) 4'});
+  const sel=h('select',{id:'cs-tool'},h('option',{value:'',text:'(선택 안 함)'}),...tools.filter(t=>!t.sample).map(t=>h('option',{value:t.id,text:str(t.name,30)})),h('option',{value:'__etc',text:'기타 (Claude·ChatGPT 등)'}));
+  const etc=h('input',{id:'cs-etc',maxlength:'40',placeholder:'쓴 도구나 AI 이름',hidden:true});
+  sel.addEventListener('change',()=>{etc.hidden=sel.value!=='__etc';});
+  const note=h('input',{id:'cs-note',maxlength:'80',placeholder:'한 줄 소감 (예: 초안 잡는 시간이 확 줄었어요)'});
+  const err=h('p',{class:'auth-err',role:'alert'});
+  const f=h('form',{class:'form'},
+    h('div',{class:'field'},h('label',{for:'cs-work',text:'어떤 업무였나요?'}),work),
+    h('div',{class:'case-nums'},
+      h('div',{class:'field'},h('label',{for:'cs-b',text:'원래 걸리던 시간(분)'}),b),
+      h('div',{class:'field'},h('label',{for:'cs-a',text:'AI 쓰고 나서(분)'}),a),
+      h('div',{class:'field'},h('label',{for:'cs-n',text:'한 달에 몇 번?'}),n)),
+    h('div',{class:'field'},h('label',{for:'cs-tool',text:'쓴 도구'}),sel,etc),
+    h('div',{class:'field'},h('label',{for:'cs-note',text:'한 줄 소감'}),note),
+    h('p',{class:'note',text:'민원인 이름이나 개인정보는 적지 마세요. 숫자는 대략이면 충분해요.'}),err,
+    h('div',{class:'modal-actions'},h('button',{type:'submit',class:'btn primary',text:'사례 남기기 ♡'})));
+  f.addEventListener('submit',async e=>{
+    e.preventDefault();err.textContent='';
+    const w=work.value.trim(),bb=num(b.value,6000),aa=num(a.value,6000),nn=num(n.value,200);
+    if(!w){err.textContent='업무 이름을 적어 주세요.';work.focus();return;}
+    if(!bb){err.textContent='원래 걸리던 시간을 적어 주세요.';b.focus();return;}
+    if(aa>bb){err.textContent='AI 쓰고 나서 시간이 원래보다 길어요. 한 번 더 확인해 주세요.';a.focus();return;}
+    if(!nn){err.textContent='한 달에 몇 번 하는 일인지 적어 주세요.';n.focus();return;}
+    const tool=sel.value==='__etc'?str(etc.value.trim(),40):sel.value;
+    const item={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),work:str(w,30),b:bb,a:aa,n:nn,tool,note:str(note.value.trim(),80),ts:Date.now()};
+    try{await patchMine(d=>({cases:[...arrOf(d.cases).filter(Boolean).slice(-9),item]}));
+      toast(`📈 사례를 남겼어요! 한 달 약 ${fmtH(caseHours(item))}시간 절약`);try{missionEvent('case');}catch(x){}
+      if(document.activeElement)document.activeElement.blur();redraw();}
+    catch(x){err.textContent='저장하지 못했어요. 잠시 뒤 다시 해 주세요.';}
+  });
+  det.append(f);return det;
+}
+function deptKey(v){let t=str(v,20).replace(/\s+/g,' ').trim();t=t.replace(/^제주(특별자치도)?\s*제주시\s*/,'').replace(/^제주시\s*/,'').trim();return t||'소속 미입력';}
+function farmView(){
+  const groups={};
+  Object.keys(chars).forEach(u=>{const c=chars[u];if(!c||!c.nick)return;const k=deptKey(c.dept);(groups[k]=groups[k]||[]).push(u);});
+  const myK=myData()?deptKey(myData().dept):null;
+  const keys=Object.keys(groups).sort((a,b)=>(a===myK?-1:b===myK?1:a==='소속 미입력'?1:b==='소속 미입력'?-1:a.localeCompare(b,'ko')));
+  const wrap=h('div',{});
+  const all=Object.keys(chars).filter(u=>chars[u]&&chars[u].nick),grown=all.filter(u=>dispStage(u)>=4).length;
+  wrap.append(h('p',{class:'farm-sum',text:`탐라 과수원에 나무 ${all.length}그루 · 그중 🍊 귤 이상(직접 만든 도구가 있는 직원) ${grown}그루`}));
+  const ul=h('ul',{class:'farm-list'});
+  keys.forEach(k=>{const us=groups[k].slice().sort((a,b)=>dispStage(b)-dispStage(a));
+    ul.append(h('li',{class:k===myK?'mine':''},h('b',{class:'fm-d',text:k+(k===myK?' (우리 부서)':'')}),
+      h('span',{class:'fm-t'},us.slice(0,40).map(u=>h('button',{type:'button',class:'fm-tree',title:nickOf(u)+' · '+GROW[dispStage(u)].n,'aria-label':nickOf(u)+' '+GROW[dispStage(u)].n,text:stIcon(u),onclick:()=>{closeModal();openGrow(u);}}))),
+      h('span',{class:'note',text:` ${us.length}명`})));});
+  if(!keys.length)ul.append(h('li',{class:'empty',text:'아직 과수원이 비어 있어요'}));
+  wrap.append(ul,h('p',{class:'note',text:'부서는 캐릭터의 「소속」 칸으로 묶여요. 아이콘을 누르면 그 직원의 성장기를 볼 수 있어요.'}));
+  return wrap;
+}
+$('#growPill').addEventListener('click',()=>openGrow(myId));
+$('#pfStage').addEventListener('click',()=>openGrow(myId));
+
 /* ---------- 마스터 메뉴 (Supabase 모드) ---------- */
 function openMaster(){
   if(!Backend||Backend.name!=='supabase'||!isOwner)return;
@@ -4309,11 +4597,12 @@ async function boot(){
   let got=false;
   const timer=be.shared?setTimeout(()=>{if(!got)setStatus('저장된 정보를 아직 불러오지 못했어요. 연결을 확인해 주세요.');},10000):null;
   be.watchChars((m,confirmed)=>{chars=m;if(confirmed&&!got){got=true;clearTimeout(timer);setStatus('');afterChars();}renderAll();try{socialTick();}catch(e){}},()=>{clearTimeout(timer);setStatus('캐릭터 정보를 불러오지 못했어요.');});
-  be.watchTools(list=>{tools=withExt(list.map(cleanTool));renderAll();},()=>setStatus('도구 목록을 불러오지 못했어요.'));
+  be.watchTools(list=>{LOADED.tools=1;tools=withExt(list.map(cleanTool));renderAll();},()=>setStatus('도구 목록을 불러오지 못했어요.'));
   be.watchGuestbook(list=>{guest=list.map(cleanGuest);if(tab==='guest')renderGuest();},()=>{});
-  if(be.watchTips)be.watchTips(list=>{peerTips=list.map(cleanTip);if(tab==='tips'){const ta=$('#pt-text'),ae=document.activeElement;if((ta&&ta.value.trim())||(ae&&ae.id==='mkTipQ'))return;const y=window.scrollY;renderTipsView();window.scrollTo(0,y);}},()=>{});
-  be.watchRequests(list=>{requests=list.map(cleanReq);if(tab==='maker'&&mk.sub==='req')renderReq();else if(tab==='home'){renderHomeReq();renderNews();}},()=>{});
-  be.watchReviews(list=>{reviews=list.map(v=>({id:str(v.id,200),toolId:str(v.toolId,200),by:str(v.by,200),nick:str(v.nick,10),ok:v.ok!==false,broken:!!v.broken,text:str(v.text,60),ts:Number(v.ts)||0}));if(!['home','room','req'].includes(tab))renderList();if(tab==='home'){renderNews();renderFriends();}if(MODAL&&MODAL._rv)MODAL._rv();},()=>{});
+  if(!be.watchTips)LOADED.tips=1;
+  if(be.watchTips)be.watchTips(list=>{LOADED.tips=1;peerTips=list.map(cleanTip);if(tab==='tips'){const ta=$('#pt-text'),ae=document.activeElement;if((ta&&ta.value.trim())||(ae&&ae.id==='mkTipQ'))return;const y=window.scrollY;renderTipsView();window.scrollTo(0,y);}},()=>{});
+  be.watchRequests(list=>{LOADED.requests=1;requests=list.map(cleanReq);if(tab==='maker'&&mk.sub==='req')renderReq();else if(tab==='home'){renderHomeReq();renderNews();}},()=>{});
+  be.watchReviews(list=>{LOADED.reviews=1;reviews=list.map(v=>({id:str(v.id,200),toolId:str(v.toolId,200),by:str(v.by,200),nick:str(v.nick,10),ok:v.ok!==false,broken:!!v.broken,text:str(v.text,60),ts:Number(v.ts)||0}));if(!['home','room','req'].includes(tab))renderList();if(tab==='home'){renderNews();renderFriends();}if(MODAL&&MODAL._rv)MODAL._rv();},()=>{});
   be.watchPeers(list=>{peers=list;renderPeers();renderResidents();updateOnline();try{chatPeersTick();}catch(e){}});
   if(be.watchPrivate)be.watchPrivate('diary',v=>{privDiary=(v&&Array.isArray(v.list))?v.list.filter(x=>x&&typeof x.id==='string').slice(-60):[];if(tab==='diary')renderDiary();},()=>{});
   renderAll();
