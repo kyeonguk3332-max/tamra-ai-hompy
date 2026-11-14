@@ -953,6 +953,16 @@ body{background:var(--sk-bg);background-attachment:fixed}
 .fm-t{flex:1;display:flex;flex-wrap:wrap;gap:1px}
 .fm-tree{border:0;background:none;font-size:18px;line-height:1;padding:1px;cursor:pointer}
 @media (max-width:520px){.case-nums{grid-template-columns:1fr 1fr}.case-nums .field:last-child{grid-column:1/-1}}
+
+/* ---------- 광장 채널 ---------- */
+.ch-btn{border:1px solid #9ec9e6;background:#f2f9ff;color:#1d5f8a;border-radius:10px;font-family:var(--f-cy);font-size:11px;padding:2px 8px;cursor:pointer}
+.ch-list{list-style:none;margin:6px 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.ch-list li{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid #e3e3e3;border-radius:8px;background:#fff}
+.ch-list li.on{border-color:#f39800;background:#fffaf0}
+.ch-list b{font-family:var(--f-cy);font-size:13px;min-width:62px}
+.ch-bar{flex:1;height:8px;background:#eee;border-radius:4px;overflow:hidden}
+.ch-bar i{display:block;height:100%;background:linear-gradient(90deg,#9bc53d,#f39800)}
+.ch-here{font-family:var(--f-cy);font-size:11px;color:#e07a19}
 @media (prefers-reduced-motion:reduce){
   .char.walking .sp{animation:none}
   .gyul.fly{animation:none}
@@ -1011,7 +1021,7 @@ body{background:var(--sk-bg);background-attachment:fixed}
           </div>
           <div class="sec-head">
             <h2><span class="cy-on">Miniroom</span> <i class="cy-bar">|</i> <span class="cy-sub">탐라 광장</span></h2>
-            <span class="sec-tools"><button type="button" class="btn sm" id="surfBtn">🌊 파도타기</button><span class="online" id="online">지금 광장에 1명</span></span>
+            <span class="sec-tools"><button type="button" class="btn sm" id="surfBtn">🌊 파도타기</button><button type="button" class="ch-btn" id="chBtn" hidden title="다른 광장으로 이동">📺 1광장</button><span class="online" id="online">지금 광장에 1명</span></span>
           </div>
           <div class="room" id="room" tabindex="0" aria-label="탐라 광장. 바닥을 누르거나 방향키로 캐릭터를 움직이고, 평상·포스트잇 벽·투표판을 눌러 보세요.">
             <div class="wall">
@@ -1548,10 +1558,20 @@ function ClaudeBackend(C){
    - 표 하나(docs)에 col(분류)/id/data로 저장 → Claude 저장소와 같은 모양이라 화면 코드는 그대로 */
 const SUPA_LIB='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js';
 const SUPA_DOMAIN='@tamra.example.com';
+const PLAZA_CAP=20; // 광장 하나 정원
 function supaOn(){const c=CONFIG.supabase;return !!(c&&c.url&&c.key&&/^https?:$/.test(location.protocol)&&!/[?&]local=1\b/.test(location.search));}
 function loadScript(src,ms){return new Promise((res,rej)=>{if(window.supabase&&window.supabase.createClient)return res();const t=setTimeout(()=>rej(new Error('timeout')),ms||15000);const sc=document.createElement('script');sc.src=src;sc.async=true;sc.onload=()=>{clearTimeout(t);res();};sc.onerror=()=>{clearTimeout(t);rej(new Error('load'));};document.head.append(sc);});}
 function SupabaseBackend(cfg){
   let sb=null,uid=null,uname='',chan=null,pres=null,presKey='p'+Math.random().toString(36).slice(2,10),presReady=false,lastPres=null,presT=null;
+  let plazaCh=1,chCounts={},lobby=null,lobbyReady=false,peersCb=null;
+  function joinPlaza(){
+    if(pres){try{sb.removeChannel(pres);}catch(e){}}
+    presReady=false;const me=sb.channel('tamra-plaza-'+plazaCh,{config:{presence:{key:presKey}}});pres=me;
+    const emitP=()=>{if(pres!==me||!peersCb)return;const st=me.presenceState()||{};peersCb(Object.entries(st).map(([k,arr])=>{const m=(arr&&arr[arr.length-1])||{};return {key:k,userId:typeof m.uid==='string'?m.uid:null,isMe:m.uid===uid,sameTab:k===presKey,state:m};}));};
+    me.on('presence',{event:'sync'},emitP).on('presence',{event:'join'},emitP).on('presence',{event:'leave'},emitP)
+      .subscribe(st=>{if(st==='SUBSCRIBED'&&pres===me){presReady=true;if(lastPres)me.track(lastPres).catch(()=>{});}});
+    if(peersCb)peersCb([]);
+  }
   const cache={},subs={},loading={},privCb={},privData={};
   const mapErr=e=>{const t=String((e&&(e.code||''))+' '+(e&&e.message||''));return bErr(/42501|row-level|permission|PGRST301|JWT|not_admin|401|403/i.test(t)?'forbidden':/413|too large|size_ok/i.test(t)?'quota':'unavailable',e);};
   const run=async q=>{const r=await q;if(r.error)throw mapErr(r.error);return r.data;};
@@ -1620,12 +1640,20 @@ function SupabaseBackend(cfg){
       lastPres={...state,uid};if(!pres||!presReady)return;
       if(presT)return;presT=setTimeout(()=>{presT=null;if(lastPres)pres.track(lastPres).catch(()=>{});},120);
     },
+    channels(){return {cur:plazaCh,cap:PLAZA_CAP,counts:{...chCounts}};},
+    setChannel(n){n=Math.max(1,Math.min(99,Math.floor(n)||1));if(n===plazaCh&&pres)return;plazaCh=n;joinPlaza();if(lobby&&lobbyReady)lobby.track({ch:plazaCh,uid}).catch(()=>{});},
     watchPeers(cb){
-      pres=sb.channel('tamra-plaza',{config:{presence:{key:presKey}}});
-      const emitP=()=>{const st=pres.presenceState()||{};cb(Object.entries(st).map(([k,arr])=>{const m=(arr&&arr[arr.length-1])||{};return {key:k,userId:typeof m.uid==='string'?m.uid:null,isMe:m.uid===uid,sameTab:k===presKey,state:m};}));};
-      pres.on('presence',{event:'sync'},emitP).on('presence',{event:'join'},emitP).on('presence',{event:'leave'},emitP)
-        .subscribe(st=>{if(st==='SUBSCRIBED'){presReady=true;if(lastPres)pres.track(lastPres).catch(()=>{});}});
-      return()=>{try{sb.removeChannel(pres);}catch(e){}};
+      peersCb=cb;let joined=false;
+      const go=()=>{if(joined)return;joined=true;
+        // 자리가 남은 가장 앞 광장으로
+        let n=1;while((chCounts[n]||0)>=PLAZA_CAP)n++;plazaCh=n;joinPlaza();if(lobby&&lobbyReady)lobby.track({ch:plazaCh,uid}).catch(()=>{});};
+      lobby=sb.channel('tamra-lobby',{config:{presence:{key:presKey}}});
+      const countL=()=>{const st=lobby.presenceState()||{},c={};Object.entries(st).forEach(([k,arr])=>{if(k===presKey)return;const m=(arr&&arr[arr.length-1])||{};const ch=Number(m.ch);if(Number.isInteger(ch)&&ch>0)c[ch]=(c[ch]||0)+1;});
+        if(joined)c[plazaCh]=(c[plazaCh]||0)+1;chCounts=c;try{updateOnline();}catch(e){}try{if(MODAL&&MODAL._ch)MODAL._ch();}catch(e){}};
+      lobby.on('presence',{event:'sync'},()=>{countL();go();countL();}).on('presence',{event:'join'},countL).on('presence',{event:'leave'},countL)
+        .subscribe(st=>{if(st==='SUBSCRIBED'){lobbyReady=true;if(joined)lobby.track({ch:plazaCh,uid}).catch(()=>{});}});
+      setTimeout(go,2500); // 로비 응답이 늦으면 1광장으로
+      return()=>{try{sb.removeChannel(pres);}catch(e){}try{sb.removeChannel(lobby);}catch(e){}};
     },
     async signOut(){try{await sb.auth.signOut();}catch(e){}location.reload();},
     async adminSetCode(code){return run(sb.rpc('admin_set_signup_code',{p_code:code}));},
@@ -1873,6 +1901,8 @@ function renderPeers(){
   try{updateTalk();}catch(e){}try{renderStage();}catch(e){}
 }
 function renderResidents(){
+  // 접속 중인 직원만 광장에 보여요. 접속 안 한 직원은 파도타기·과수원에서 만날 수 있어요.
+  if(Backend&&Backend.live){for(const [k,el] of residentEls){el.remove();residentEls.delete(k);}return;}
   const on=onlineIds();
   const ids=Object.keys(chars).filter(id=>id!==myId&&!on.has(id)).sort((a,b)=>String(chars[b].lastSeen||'').localeCompare(String(chars[a].lastSeen||''))).slice(0,8);
   const keep=new Set(ids);
@@ -1888,8 +1918,27 @@ function renderResidents(){
 }
 function updateOnline(){
   const n=(Backend&&Backend.live)?Math.max(1,peers.length):1;
-  $('#online').textContent=`지금 광장에 ${n}명`;
+  if(Backend&&Backend.channels){const c=Backend.channels(),tot=Object.values(c.counts).reduce((a,b)=>a+b,0);
+    $('#chBtn').hidden=false;$('#chBtn').textContent=`📺 ${c.cur}광장`;
+    $('#online').textContent=`이 광장 ${n}명`+(tot>n?` · 전체 ${tot}명`:'');}
+  else $('#online').textContent=`지금 광장에 ${n}명`;
 }
+/* 광장 채널: 한 광장 정원 PLAZA_CAP명. 들어올 때 자리가 남은 광장으로 자동 배정, 원하면 옮길 수 있어요 */
+function openChannels(){
+  if(!Backend||!Backend.channels)return;
+  const box=h('div',{class:'ch-box'});
+  const draw=()=>{
+    const c=Backend.channels(),nums=Object.keys(c.counts).map(Number).filter(n=>n>0);if(!nums.includes(c.cur))nums.push(c.cur);
+    const max=Math.max(1,...nums);const list=[];for(let i=1;i<=max;i++)list.push(i);
+    box.replaceChildren(h('p',{class:'note',text:`한 광장에 ${c.cap}명까지 들어가요. 북적이면 다른 광장으로 놀러 가 보세요. 채팅방·포스트잇·투표는 모든 광장이 함께 써요.`}),
+      h('ul',{class:'ch-list'},list.map(i=>{const n=c.counts[i]||0,full=n>=c.cap&&i!==c.cur;
+        return h('li',{class:i===c.cur?'on':''},h('b',{text:`📺 ${i}광장`}),h('span',{class:'ch-bar'},h('i',{style:`width:${Math.min(100,Math.round(n/c.cap*100))}%`})),h('span',{class:'note',text:`${n}/${c.cap}`}),
+          i===c.cur?h('span',{class:'ch-here',text:'지금 여기'}):h('button',{type:'button',class:'btn sm'+(full?' disabled':' primary'),disabled:full,text:full?'꽉 찼어요':'이동',onclick:()=>{Backend.setChannel(i);closeModal();toast(`📺 ${i}광장으로 이동했어요`);}}));})),
+      h('div',{class:'modal-actions'},h('button',{type:'button',class:'btn sm',text:`＋ 새 광장 열기 (${max+1}광장)`,onclick:()=>{Backend.setChannel(max+1);closeModal();toast(`📺 ${max+1}광장을 열었어요. 친한 직원을 불러 보세요~`);}})));
+  };
+  draw();openModal('📺 광장 고르기',box,null,true);MODAL._ch=draw;
+}
+$('#chBtn').addEventListener('click',openChannels);
 function sendPresence(){
   if(!Backend)return;const d=myData();if(!d)return;
   Backend.setPresence({x:Math.round(me.x*10)/10,y:Math.round(me.y*10)/10,dir:me.dir,look:cleanLook(d.look),nick:str(d.nick,10),uid:myId||null,say:me.say,sayId:me.sayId,act:me.act,actId:me.actId,sit:me.sit,stage:me.stage,emo:me.emo});
