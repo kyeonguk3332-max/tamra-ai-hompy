@@ -3063,9 +3063,15 @@ const TRACKS=[
   {title:'다시 쓰는 기안문 (Ballad)',style:'ballad',bpm:68,key:'A',minor:true,chords:['Am7','Fmaj7','Cmaj7','G','Dm7','Em7','Fmaj7','E7'],seed:157,lead:'voice',strings:true,drums:true},
   {title:'마지막 칼퇴 (Ballad)',style:'ballad',bpm:72,key:'G',minor:false,chords:['Gmaj7','D/F#','Em7','Bm7','Cmaj7','Gmaj7','Am7','D13'],seed:163,lead:'voice',strings:true,drums:true},
   {title:'눈물의 인사발령 (Ballad)',style:'ballad',bpm:66,key:'E',minor:true,chords:['Em7','Cmaj7','Gmaj7','D','Am7','Bm7','Cmaj7','B7'],seed:167,lead:'voice',strings:true,drums:true},
-  {title:'한라산에 두고 온 사랑 (Ballad)',style:'ballad',bpm:74,key:'F',minor:false,chords:['Fmaj7','C/E','Dm7','Am7','Bbmaj7','Fmaj7','Gm7','C13'],seed:173,lead:'voice',strings:true,drums:true,rain:true}
+  {title:'한라산에 두고 온 사랑 (Ballad)',style:'ballad',bpm:74,key:'F',minor:false,chords:['Fmaj7','C/E','Dm7','Am7','Bbmaj7','Fmaj7','Gm7','C13'],seed:173,lead:'voice',strings:true,drums:true,rain:true},
+  // 브릿록·드림팝: 맑은 기타 아르페지오 + 메아리, 안개 같은 패드. 드럼은 두 번째 바퀴부터
+  {title:'퇴근 후 귤 한 조각 (Dream pop)',style:'brit',bpm:70,key:'F',minor:false,chords:['Fmaj7','Am7','Bbmaj7','Fmaj7','Dm7','Am7','Bbmaj7','C'],seed:181,lead:'dream'},
+  {title:'새벽 안개 오름 (Dream pop)',style:'brit',bpm:66,key:'E',minor:true,chords:['Em9','Cmaj7','Gmaj7','D','Em9','Cmaj7','Am7','B7'],seed:191,lead:'dream',rain:true},
+  {title:'전산 오류의 밤 (Alt rock)',style:'brit',alt:true,bpm:78,key:'A',minor:true,chords:['Am','Fmaj7','C','G','Am','Fmaj7','Dm7','E'],seed:193,lead:'gtr'},
+  {title:'무지개 아래 우산 (Alt rock)',style:'brit',alt:true,bpm:84,key:'D',minor:true,chords:['Dm9','Bbmaj7','Gm7','A7','Dm9','Bbmaj7','Gm9','A'],seed:197,lead:'dream',rain:true},
+  {title:'퇴근길 브릿팝 (Brit rock)',style:'brit',drive:true,bpm:86,key:'G',minor:false,chords:['G','D/F#','Em7','Cmaj7','G','D/F#','Cmaj7','D'],seed:199,lead:'gtr'}
 ];
-const LOOPS={ballad:3,rnb:4,piano:3,blues:4,lofi:4,chip:4,hiphop:4};
+const LOOPS={ballad:3,rnb:4,piano:3,blues:4,lofi:4,chip:4,hiphop:4,brit:3};
 const OLD_BGM=[['프리스타일','Y'],['버즈','가시'],['SG워너비','Timeless'],['브라운아이즈','벌써 일년'],['에픽하이','Fly'],['넬','기억을 걷는 시간'],['김종국','한 남자'],['이수영','휠릴리'],['거미','친구라도 될 걸 그랬어']];
 const MUSIC=(()=>{
   const NOTE={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
@@ -3082,7 +3088,7 @@ const MUSIC=(()=>{
     const r=rng(tr.seed),tonic=NOTE[tr.key];
     const scale=(tr.minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11]);
     const inScale=n=>scale.includes(((n-tonic)%12+12)%12);
-    const slow=tr.style==='ballad'||tr.style==='lofi'||tr.style==='piano';
+    const slow=tr.style==='ballad'||tr.style==='lofi'||tr.style==='piano'||tr.style==='brit';
     const pats=slow?[[2,1,1],[1,1,2],[1.5,.5,2],[3,1],[1,1,1,1],[2,2]]:[[1,1,1,1],[.5,.5,1,1,1],[1,.5,.5,2],[1.5,.5,1,1],[.5,.5,.5,.5,2],[1,1,2]];
     const notes=[];let prev=72+tonic-12+12;if(prev>79)prev-=12;
     tr.chords.forEach((cn,bar)=>{
@@ -3138,6 +3144,25 @@ const MUSIC=(()=>{
       for(let j=0;j<8;j++)hit(t+j*b/2+(j%2?sw:0),'hat',j%2?0.022:0.04);
       for(let k=0;k<4;k++)hit(t+Math.random()*4*b,'crackle',0.01+Math.random()*0.01);
     }
+    if(st==='brit'){
+      const dream=!tr.drive&&!tr.alt;
+      // 맑은 기타 아르페지오 + 메아리(딜레이)
+      const gt=c.iv.slice(0,4).map(v=>52+c.root+v);gt.push(gt[0]+12,gt[1]+12);
+      const ord=dream?[0,2,4,1,3,5,2,4]:tr.alt?[0,2,1,3,4,2,5,3]:[0,1,2,3,4,3,2,1];
+      ord.forEach((k,j)=>{const m=gt[k%gt.length],tt=t+j*b/2;
+        tone(mtof(m),tt,b*0.9,{type:'triangle',vol:dream?0.045:0.038,pluck:true,lp:dream?1500:2100});
+        tone(mtof(m),tt+b*0.75,b*0.9,{type:'triangle',vol:dream?0.018:0.012,pluck:true,lp:1100,detune:4});});
+      // 공간을 채우는 안개 패드
+      pad.forEach((m,j)=>tone(mtof(m+12),t+j*0.04,b*4,{type:dream?'sine':'sawtooth',vol:dream?0.022:0.008,attack:dream?0.9:0.35,release:0.9,lp:dream?1400:1000,detune:j%2?8:-8}));
+      // 브릿록: 두 번째 바퀴부터 파워코드 스트럼
+      if(tr.drive&&full){const pw=[48+c.root,55+c.root,60+c.root];for(let j=0;j<8;j++)pw.forEach(m=>tone(mtof(m),t+j*b/2,b*0.45,{type:'sawtooth',vol:0.011,lp:1700,detune:j%2?5:-5}));}
+      // 드럼: 두 번째 바퀴부터. 드림팝은 아주 살살
+      if(full){
+        if(dream){hit(t,'kick',0.16);hit(t+2*b,'kick',0.12);hit(t+b,'snare',0.045);hit(t+3*b,'snare',0.045);for(let j=0;j<4;j++)hit(t+j*b,'hat',0.012);}
+        else{hit(t,'kick',0.3);hit(t+2*b,'kick',0.24);if(tr.drive)hit(t+2.5*b,'kick',0.2);hit(t+b,'snare',0.1);hit(t+3*b,'snare',0.1);for(let j=0;j<8;j++)hit(t+j*b/2,'hat',j%2?0.016:0.026);}
+      }
+      if(tr.rain)hit(t,'rain',0.014,4*b);
+    }
     if(st==='piano'||st==='ballad'){const arp=[0,1,2,1,3%c.iv.length,1,2,1];arp.forEach((k,j)=>tone(mtof(48+c.root+c.iv[k%c.iv.length]+(j%4===3?12:0)),t+j*b/2,b/2,{type:'triangle',vol:0.05,pluck:true}));}
     if(st==='chip'){[0,1,2,1,0,1,2,1].forEach((k,j)=>tone(mtof(60+c.root+c.iv[k]),t+j*b/2,b/2.2,{type:'square',vol:0.018,pluck:true}));}
     const bassM=36+c.bass;
@@ -3150,12 +3175,12 @@ const MUSIC=(()=>{
       hit(t+b,'snare',st==='lofi'?0.08:0.12);hit(t+3*b,'snare',st==='lofi'?0.08:0.12);
       for(let j=0;j<8;j++)hit(t+j*b/2+(j%2?sw:0),'hat',j%2?0.025:0.04);
     }
-    const LEADS={keys:{type:'triangle',vol:0.07,pluck:true,lp:1700},bell:{type:'sine',vol:0.075,pluck:true},flute:{type:'sine',vol:0.06,attack:0.06,lp:1300},strings:{type:'sawtooth',vol:0.022,attack:0.08,lp:1600},voice:{type:'sine',vol:0.085,attack:0.06,release:0.25,lp:2400}};
+    const LEADS={keys:{type:'triangle',vol:0.07,pluck:true,lp:1700},bell:{type:'sine',vol:0.075,pluck:true},flute:{type:'sine',vol:0.06,attack:0.06,lp:1300},strings:{type:'sawtooth',vol:0.022,attack:0.08,lp:1600},voice:{type:'sine',vol:0.085,attack:0.06,release:0.25,lp:2400},dream:{type:'sine',vol:0.06,attack:0.16,release:0.7,lp:1500},gtr:{type:'triangle',vol:0.055,attack:0.02,release:0.35,lp:2000}};
     const leadV=st==='hiphop'?0.75:1;
-    const lead=(tr.lead&&LEADS[tr.lead])||{ballad:{type:'triangle',vol:0.075,attack:0.03,lp:2600},rnb:{type:'sine',vol:0.09,attack:0.02},piano:{type:'triangle',vol:0.08,pluck:true},blues:{type:'sawtooth',vol:0.03,lp:1800},lofi:{type:'sine',vol:0.07,attack:0.04,lp:1400},chip:{type:'square',vol:0.03}}[st];
+    const lead=(tr.lead&&LEADS[tr.lead])||{ballad:{type:'triangle',vol:0.075,attack:0.03,lp:2600},rnb:{type:'sine',vol:0.09,attack:0.02},piano:{type:'triangle',vol:0.08,pluck:true},blues:{type:'sawtooth',vol:0.03,lp:1800},lofi:{type:'sine',vol:0.07,attack:0.04,lp:1400},chip:{type:'square',vol:0.03},brit:{type:'sine',vol:0.06,attack:0.16,release:0.7,lp:1500}}[st];
     if(tr.lead==='bell')score.filter(n=>n.bar===bar).forEach(n=>tone(mtof(n.midi+12),t+n.beat*b,n.dur*b*0.9,{type:'sine',vol:0.015,pluck:true}));
     const ld=leadV===1?lead:{...lead,vol:lead.vol*leadV};
-    score.filter(n=>n.bar===bar).forEach(n=>{const sh=(sw&&(n.beat%1)===0.5)?sw:0;tone(mtof(n.midi),t+n.beat*b+sh,n.dur*b*0.95,ld);if(tr.lead==='voice'&&full)tone(mtof(n.midi),t+n.beat*b+0.015,n.dur*b*0.95,{...ld,vol:ld.vol*0.4,detune:9});});
+    score.filter(n=>n.bar===bar).forEach(n=>{const sh=(sw&&(n.beat%1)===0.5)?sw:0;tone(mtof(n.midi),t+n.beat*b+sh,n.dur*b*0.95,ld);if(tr.lead==='voice'&&full)tone(mtof(n.midi),t+n.beat*b+0.015,n.dur*b*0.95,{...ld,vol:ld.vol*0.4,detune:9});if(st==='brit')tone(mtof(n.midi),t+n.beat*b+0.75*b,n.dur*b*0.9,{...ld,vol:ld.vol*0.3,detune:6});});
   }
   function tick(){
     if(!ctx||!cur)return;
@@ -3193,7 +3218,7 @@ function setBgm(on,i,force){
 }
 function openBgmList(){
   const list=h('ul',{class:'bgm-list'});
-  const GENRE={lofi:'☕ 로파이',hiphop:'🎤 그 시절 힙합',ballad:'💧 그 시절 발라드'};
+  const GENRE={lofi:'☕ 로파이',hiphop:'🎤 그 시절 힙합',ballad:'💧 그 시절 발라드',brit:'🎸 브릿록 · 드림팝'};
   const draw=()=>{let g='';list.replaceChildren(...TRACKS.flatMap((t,i)=>{const on=bgmOn&&i===bgmI;const head=t.style!==g?(g=t.style,[h('li',{class:'bgm-genre',text:GENRE[t.style]||t.style})]):[];
     return head.concat([(()=>{
     if(trackLocked(t))return h('li',{},h('button',{type:'button',class:'bgm-row',onclick:()=>{closeModal();openShop();}},h('span',{class:'bgm-ic',text:'🔒'}),h('span',{text:'숨은 곡 · 귤 가게에서 열 수 있어요'})));
