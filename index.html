@@ -3327,8 +3327,14 @@ const remixDraft={};
 // 🦴 모양별 뼈대: 이미 돌아가는 HTML 한 파일. AI는 맨 위 기준표(JSON)만 채운다.
 const SKELS={"judge": {"id": "skel-judge", "name": "판정형 뼈대", "file": "판정형-뼈대.html", "what": "조건을 넣으면 기준표의 규칙과 대조해 판정 도장, 근거 조문, 필요 서류를 보여 주는 HTML 한 파일이에요. 값이 비면 짐작하지 않고 “확인 필요”로 알려 주고, 검증 사례 비교와 완성 파일 내려받기가 들어 있어요. 인터넷 없이 더블클릭으로 열려요.", "schema": "{\n  \"title\": \"도구 이름\",\n  \"org\": \"우리 부서\",\n  \"basisDate\": \"기준일 (예: 2026. 11. 17. 시행 기준)\",\n  \"sources\": [\"근거 문서 이름\"],\n  \"fields\": [\n    {\"id\": \"영문_아이디\", \"label\": \"입력 항목 이름\", \"type\": \"number 또는 select 또는 yesno\", \"unit\": \"단위 (number일 때)\", \"options\": [\"select일 때 고를 값\"]}\n  ],\n  \"outcomes\": [\n    {\"id\": \"영문_아이디\", \"label\": \"판정 이름\", \"tone\": \"bad·warn·info·ok 중 하나 (불가·주의·안내·문제없음)\"}\n  ],\n  \"priority\": [\"여러 규칙에 걸리면 이기는 판정 id부터 차례로\"],\n  \"rules\": [\n    {\"id\": \"R1\", \"if\": 조건, \"then\": \"판정 id\", \"basis\": \"제○조제○항 · 별표 ○ 같은 근거\", \"note\": \"쉬운 설명\"}\n  ],\n  \"default\": {\"then\": \"어느 규칙에도 안 걸릴 때의 판정 id\", \"basis\": \"그렇게 보는 근거\"},\n  \"docs\": {\"판정 id\": [\"필요 서류\"]},\n  \"cases\": [\n    {\"name\": \"사례 이름\", \"input\": {\"입력 아이디\": 값}, \"expect\": \"담당자가 내린 판정 id (판단 보류였으면 check)\", \"by\": \"담당자 판단\"}\n  ]\n}\n조건 쓰는 법: {\"f\": \"입력 아이디\", \"op\": \"=, !=, >, >=, <, <=, in, notin, yes, no 중 하나\", \"v\": 비교값}\n여러 조건은 {\"all\": [조건, 조건]} (모두), {\"any\": [조건, 조건]} (하나라도), {\"not\": 조건} 으로 묶어요.\nyesno 항목의 값은 \"예\" 또는 \"아니요\"예요. 입력이 비어 있으면 도구가 짐작하지 않고 “확인 필요”로 보여 줘요.\n근거가 없는 경우의 판정을 default로 메우지 마세요. default를 빼면 규칙에 없는 조건은 “확인 필요”가 돼요."}};
 function skelCode(k){const S=SKELS[k],e=S&&document.getElementById(S.id);return e?e.textContent.replace(/<\\\/script/gi,'</script').replace(/<\\!--/g,'<!--').replace(/^\n/,''):'';}
-function skelDownload(k){
+async function skelDownload(k){
   const S=SKELS[k],code=skelCode(k);if(!code){toast('뼈대를 찾지 못했어요');return;}
+  const C=window.claude;
+  if(C&&typeof C.use==='function'){ // Claude 아티팩트 안: 플랫폼 저장 창으로 건넨다 (일반 다운로드 링크는 막혀 있음)
+    let dl=null;try{dl=await C.use('downloads');}catch(e){}
+    if(dl){try{await dl.save({filename:S.file,data:code});toast('뼈대 파일을 저장했어요. 더블클릭하면 열려요');}catch(e){if(e&&e.code==='declined')return;copyText(code,'파일 받기가 안 돼서 코드를 복사했어요. 메모장에 붙여 넣고 .html로 저장하세요');}return;}
+    copyText(code,'이 화면에서는 파일 받기가 안 돼서 코드를 복사했어요. 메모장에 붙여 넣고 .html로 저장하세요');return;
+  }
   try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([code],{type:'text/html;charset=utf-8'}));a.download=S.file;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);toast('뼈대 파일을 내려받았어요. 받기가 안 되면 「뼈대 코드 복사」를 쓰세요');}
   catch(e){copyText(code,'파일 받기가 안 돼서 코드를 복사했어요. 메모장에 붙여 넣고 .html로 저장하세요');}
 }
