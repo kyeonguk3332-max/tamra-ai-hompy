@@ -484,6 +484,14 @@ button.pill.gyul-pill:hover{background:#ffe2bf}
 .rx-skel>b{color:var(--sea-deep);font-size:14px}
 .rx-skel ol{margin:0;padding-left:20px;line-height:1.65}
 .rx-skel p{margin:0}
+.rx-open{border:1px solid #f0c98f;background:#fff8ec;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.rx-open>b,.rx-make>b{color:var(--sea-deep);font-size:14px}
+.rx-open ol,.rx-make ol{margin:0;padding-left:20px;line-height:1.65}
+.rx-open p,.rx-make p{margin:0}
+.rx-make{border:1px solid #b8d4dc;background:#f2f9fb;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.rx-make textarea{width:100%;min-height:90px;font-size:12.5px}
+.rx-good{color:var(--ok);font-size:13px;margin:0;white-space:pre-wrap}
+.rx-quick{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px dashed var(--line);border-radius:10px;padding:8px 10px}
 .btns-row{display:flex;gap:6px;flex-wrap:wrap}
 .rx-fits{display:flex;flex-direction:column;gap:5px;width:100%}
 .rx-fit{font-size:12.5px;padding:3px 10px;text-align:left;white-space:normal;line-height:1.4}
@@ -1707,10 +1715,10 @@ function renderPanel() {
           CFG.default ? el("tr", {}, el("td", { text: "기본" }), el("td", { text: "어느 규칙에도 해당하지 않을 때" }), el("td", { text: (outcome(CFG.default.then) || { label: CFG.default.then }).label }), el("td", { text: CFG.default.basis || "확인 필요" }), el("td", { text: "" })) : null))),
       el("div", { class: "btns", style: "margin-top:10px" }, el("button", { type: "button", class: "btn sm", text: "지금 기준표 복사 (AI에게 고쳐 달라고 할 때)", onclick: (e) => copy(JSON.stringify(CFG, null, 2), e.target) })));
   } else {
-    const ta = el("textarea", { class: "code", id: "newCfg", placeholder: "AI가 만들어 준 기준표(JSON)를 여기에 통째로 붙여 넣으세요. ```json 같은 표시는 있어도 괜찮아요.", "aria-label": "새 기준표" });
+    const ta = el("textarea", { class: "code", id: "newCfg", placeholder: "AI 답변을 통째로 붙여 넣으세요. 설명 글이 섞여 있어도 기준표 부분만 알아서 골라요.", "aria-label": "새 기준표" });
     const msg = el("div", { "aria-live": "polite" });
     const dl = el("button", { type: "button", class: "btn", text: "완성 파일 내려받기", disabled: true, onclick: download });
-    p.append(el("p", { class: "small", text: "① AI가 만든 기준표를 붙여 넣고 ② 「확인하고 적용」을 누르면 ③ 검증 사례가 바로 다시 돌아요. 맞으면 ④ 완성 파일을 내려받아 쓰세요. 적용한 기준표는 이 창을 닫으면 사라지니 꼭 내려받으세요." }),
+    p.append(el("p", { class: "small", text: "① AI 답변을 통째로 붙여 넣고 ② 「확인하고 적용」을 누르면 ③ 검증 사례가 바로 다시 돌아요. 맞으면 ④ 완성 파일을 내려받아 쓰세요. 적용한 기준표는 이 창을 닫으면 사라지니 꼭 내려받으세요." }),
       ta, el("div", { class: "btns", style: "margin-top:8px" }, el("button", { type: "button", class: "btn main", text: "확인하고 적용", onclick: () => {
         const r = parseCfg(ta.value); msg.replaceChildren();
         if (r.errors.length) { msg.append(el("p", { class: "err", text: "적용하지 못했어요:\n· " + r.errors.join("\n· ") })); return; }
@@ -1725,9 +1733,17 @@ function renderPanel() {
 }
 function parseCfg(raw) {
   const errors = [];
-  let text = String(raw || "").trim().replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
-  if (!text) return { errors: ["붙여 넣은 내용이 없어요."] };
-  let cfg; try { cfg = JSON.parse(text); } catch (e) { return { errors: ["JSON 형식이 아니에요. AI에게 「기준표를 JSON 코드 블록 하나로만 다시 보여 줘」라고 하세요. (" + e.message + ")"] }; }
+  // AI 답변을 통째로 붙여 넣어도 된다: 코드 블록·본문에서 기준표(JSON)만 골라낸다
+  const all = String(raw || "");
+  if (!all.trim()) return { errors: ["붙여 넣은 내용이 없어요."] };
+  const tries = [...all.matchAll(/```[ \t]*([\w-]*)[^\n]*\n([\s\S]*?)```/g)].filter((m) => !m[1] || m[1].toLowerCase() === "json").map((m) => m[2].trim()).reverse();
+  tries.push(all.trim());
+  const a = all.indexOf("{"), z = all.lastIndexOf("}");
+  if (a >= 0 && z > a) tries.push(all.slice(a, z + 1));
+  let cfg = null;
+  for (const t of tries) { try { const o = JSON.parse(t); if (o && typeof o === "object" && !Array.isArray(o)) { if (Array.isArray(o.fields)) { cfg = o; break; } cfg = cfg || o; } } catch (e) {} }
+  if (!cfg) return { errors: ["답변에서 기준표를 찾지 못했어요. AI에게 「기준표 전체를 json 코드 블록 하나로 다시 보여 줘」라고 하세요."] };
+  delete cfg.example;
   const ids = new Set((cfg.fields || []).map((f) => f.id)), outs = new Set((cfg.outcomes || []).map((o) => o.id));
   if (!Array.isArray(cfg.fields) || !cfg.fields.length) errors.push("fields(입력 항목)가 없어요.");
   if (!Array.isArray(cfg.outcomes) || !cfg.outcomes.length) errors.push("outcomes(판정 종류)가 없어요.");
@@ -3327,17 +3343,66 @@ const remixDraft={};
 // 🦴 모양별 뼈대: 이미 돌아가는 HTML 한 파일. AI는 맨 위 기준표(JSON)만 채운다.
 const SKELS={"judge": {"id": "skel-judge", "name": "판정형 뼈대", "file": "판정형-뼈대.html", "what": "조건을 넣으면 기준표의 규칙과 대조해 판정 도장, 근거 조문, 필요 서류를 보여 주는 HTML 한 파일이에요. 값이 비면 짐작하지 않고 “확인 필요”로 알려 주고, 검증 사례 비교와 완성 파일 내려받기가 들어 있어요. 인터넷 없이 더블클릭으로 열려요.", "schema": "{\n  \"title\": \"도구 이름\",\n  \"org\": \"우리 부서\",\n  \"basisDate\": \"기준일 (예: 2026. 11. 17. 시행 기준)\",\n  \"sources\": [\"근거 문서 이름\"],\n  \"fields\": [\n    {\"id\": \"영문_아이디\", \"label\": \"입력 항목 이름\", \"type\": \"number 또는 select 또는 yesno\", \"unit\": \"단위 (number일 때)\", \"options\": [\"select일 때 고를 값\"]}\n  ],\n  \"outcomes\": [\n    {\"id\": \"영문_아이디\", \"label\": \"판정 이름\", \"tone\": \"bad·warn·info·ok 중 하나 (불가·주의·안내·문제없음)\"}\n  ],\n  \"priority\": [\"여러 규칙에 걸리면 이기는 판정 id부터 차례로\"],\n  \"rules\": [\n    {\"id\": \"R1\", \"if\": 조건, \"then\": \"판정 id\", \"basis\": \"제○조제○항 · 별표 ○ 같은 근거\", \"note\": \"쉬운 설명\"}\n  ],\n  \"default\": {\"then\": \"어느 규칙에도 안 걸릴 때의 판정 id\", \"basis\": \"그렇게 보는 근거\"},\n  \"docs\": {\"판정 id\": [\"필요 서류\"]},\n  \"cases\": [\n    {\"name\": \"사례 이름\", \"input\": {\"입력 아이디\": 값}, \"expect\": \"담당자가 내린 판정 id (판단 보류였으면 check)\", \"by\": \"담당자 판단\"}\n  ]\n}\n조건 쓰는 법: {\"f\": \"입력 아이디\", \"op\": \"=, !=, >, >=, <, <=, in, notin, yes, no 중 하나\", \"v\": 비교값}\n여러 조건은 {\"all\": [조건, 조건]} (모두), {\"any\": [조건, 조건]} (하나라도), {\"not\": 조건} 으로 묶어요.\nyesno 항목의 값은 \"예\" 또는 \"아니요\"예요. 입력이 비어 있으면 도구가 짐작하지 않고 “확인 필요”로 보여 줘요.\n근거가 없는 경우의 판정을 default로 메우지 마세요. default를 빼면 규칙에 없는 조건은 “확인 필요”가 돼요."}};
 function skelCode(k){const S=SKELS[k],e=S&&document.getElementById(S.id);return e?e.textContent.replace(/<\\\/script/gi,'</script').replace(/<\\!--/g,'<!--').replace(/^\n/,''):'';}
+/* HTML 파일 하나를 사용자에게 건넨다: 아티팩트 안에서는 플랫폼 저장 창, 웹에서는 내려받기, 둘 다 안 되면 코드 복사 */
+async function saveHtml(filename,code,okMsg){
+  const fb=m=>copyText(code,m+' 메모장에 붙여 넣고 이름을 '+filename+'(으)로 저장하세요');
+  const C=window.claude;
+  if(C&&typeof C.use==='function'){ // Claude 아티팩트 안: 일반 다운로드 링크는 막혀 있다
+    let dl=null;try{dl=await C.use('downloads');}catch(e){}
+    if(dl){try{await dl.save({filename,data:code});toast(okMsg);return true;}catch(e){if(e&&e.code==='declined')return false;fb('파일 받기가 안 돼서 코드를 복사했어요.');}return false;}
+    fb('이 화면에서는 파일 받기가 안 돼서 코드를 복사했어요.');return false;
+  }
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([code],{type:'text/html;charset=utf-8'}));a.download=filename;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);toast(okMsg);return true;}
+  catch(e){fb('파일 받기가 안 돼서 코드를 복사했어요.');return false;}
+}
 async function skelDownload(k){
   const S=SKELS[k],code=skelCode(k);if(!code){toast('뼈대를 찾지 못했어요');return;}
-  const C=window.claude;
-  if(C&&typeof C.use==='function'){ // Claude 아티팩트 안: 플랫폼 저장 창으로 건넨다 (일반 다운로드 링크는 막혀 있음)
-    let dl=null;try{dl=await C.use('downloads');}catch(e){}
-    if(dl){try{await dl.save({filename:S.file,data:code});toast('뼈대 파일을 저장했어요. 더블클릭하면 열려요');}catch(e){if(e&&e.code==='declined')return;copyText(code,'파일 받기가 안 돼서 코드를 복사했어요. 메모장에 붙여 넣고 .html로 저장하세요');}return;}
-    copyText(code,'이 화면에서는 파일 받기가 안 돼서 코드를 복사했어요. 메모장에 붙여 넣고 .html로 저장하세요');return;
-  }
-  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([code],{type:'text/html;charset=utf-8'}));a.download=S.file;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);toast('뼈대 파일을 내려받았어요. 받기가 안 되면 「뼈대 코드 복사」를 쓰세요');}
-  catch(e){copyText(code,'파일 받기가 안 돼서 코드를 복사했어요. 메모장에 붙여 넣고 .html로 저장하세요');}
+  return saveHtml(S.file,code,'뼈대 파일을 받았어요. 더블클릭하면 열려요');
 }
+/* AI 답변을 통째로 붙여 넣어도 되게: 설명 글이 섞여 있어도 코드 블록·본문에서 필요한 부분만 골라낸다 */
+function rxBlocks(t){return [...String(t||'').matchAll(/```[ \t]*([\w-]*)[^\n]*\n([\s\S]*?)```/g)].map(m=>({lang:m[1].toLowerCase(),body:m[2].trim()}));}
+function rxPickJson(raw){
+  const t=String(raw||''),c=rxBlocks(t).filter(b=>!b.lang||b.lang==='json').map(b=>b.body).reverse();
+  c.push(t.trim());const a=t.indexOf('{'),z=t.lastIndexOf('}');if(a>=0&&z>a)c.push(t.slice(a,z+1));
+  let any=null;
+  for(const x of c){try{const o=JSON.parse(x);if(o&&typeof o==='object'&&!Array.isArray(o)){if(Array.isArray(o.fields))return o;any=any||o;}}catch(e){}}
+  return any;
+}
+function rxPickHtml(raw){
+  const t=String(raw||''),bs=rxBlocks(t).filter(b=>/<html|<!doctype/i.test(b.body)).sort((a,b)=>b.body.length-a.body.length);
+  if(bs.length)return bs[0].body;
+  const a=t.search(/<!doctype html|<html/i);if(a<0)return '';
+  const z=t.toLowerCase().lastIndexOf('</html>');return z>a?t.slice(a,z+7):t.slice(a);
+}
+function rxHtmlCheck(code){
+  if(!code)return ['답변에서 HTML 코드를 찾지 못했어요. AI가 아직 코드를 주지 않았다면, 묻는 말에 답을 마친 뒤 마지막 답변을 붙여 넣어 주세요.'];
+  const p=[];
+  if(!/<\/html>\s*$/i.test(code.trim()))p.push('코드가 끝까지 오지 않았어요 (중간에 끊겼어요).');
+  if(/(\/\/|\x3c!--|\/\*)\s*(\.\.\.|…|이하\s*(생략|동일)|나머지(는)?\s*(동일|생략|그대로)|기존(과)?\s*(동일|코드|그대로)|이전(과)?\s*(동일|그대로))/.test(code))p.push('코드 안에 “기존과 동일”, “생략” 같은 줄임 표시가 있어 그대로 쓰면 작동하지 않아요.');
+  return p;
+}
+const RX_OPS=['=','!=','>','>=','<','<=','in','notin','yes','no'];
+function rxCfgCheck(cfg){ // 뼈대 파일의 기준표 점검(parseCfg)과 같은 기준
+  const e=[],ids=new Set((cfg.fields||[]).map(f=>f&&f.id)),outs=new Set((cfg.outcomes||[]).map(o=>o&&o.id));
+  if(!Array.isArray(cfg.fields)||!cfg.fields.length)e.push('입력 항목(fields)이 없어요.');
+  if(!Array.isArray(cfg.outcomes)||!cfg.outcomes.length)e.push('판정 종류(outcomes)가 없어요.');
+  if(!Array.isArray(cfg.rules))e.push('규칙(rules)이 없어요.');
+  (cfg.fields||[]).forEach(f=>{if(!f||!f.id||!f.label)e.push('이름(id·label)이 빠진 입력 항목이 있어요.');else if(f.type&&!['number','select','yesno'].includes(f.type))e.push(`입력 항목 ${f.id}의 type은 number·select·yesno 중 하나여야 해요.`);});
+  const walk=(c,w)=>{if(!c||typeof c!=='object')return;if(c.all||c.any)return (c.all||c.any).forEach(x=>walk(x,w));if(c.not)return walk(c.not,w);
+    if(!ids.has(c.f))e.push(`${w}: 없는 입력 항목 「${c.f}」을 써요.`);if(!RX_OPS.includes(c.op))e.push(`${w}: 모르는 비교 「${c.op}」.`);};
+  (Array.isArray(cfg.rules)?cfg.rules:[]).forEach((r,n)=>{const w=`규칙 ${(r&&r.id)||n+1}`;if(!r)return;if(!outs.has(r.then))e.push(`${w}: 판정 「${r.then}」이 outcomes에 없어요.`);if(!r.basis)e.push(`${w}: 근거 조문(basis)이 없어요.`);walk(r.if,w);});
+  if(cfg.default&&!outs.has(cfg.default.then))e.push(`기본 판정 「${cfg.default.then}」이 outcomes에 없어요.`);
+  (Array.isArray(cfg.cases)?cfg.cases:[]).forEach((c,n)=>{if(!c)return;if(c.expect!=='check'&&!outs.has(c.expect))e.push(`사례 ${c.name||n+1}: 기대 판정 「${c.expect}」이 outcomes에 없어요.`);Object.keys(c.input||{}).forEach(k=>{if(!ids.has(k))e.push(`사례 ${c.name||n+1}: 없는 입력 항목 「${k}」.`);});});
+  if(!cfg.basisDate)e.push('기준일(basisDate)이 없어요.');
+  return e;
+}
+function rxSkelFill(k,cfg){ // 뼈대 파일의 기준표 자리에 새 기준표를 넣은 완성 파일
+  const code=skelCode(k),re=/(\x3cscript id="기준표" type="application\/json">)[\s\S]*?(<\/script>)/;
+  if(!code||!re.test(code))return '';
+  const json='\n'+JSON.stringify(cfg,null,2).replace(/</g,'\\u003c')+'\n';
+  return code.replace(re,(m,a,b)=>a+json+b);
+}
+const rxFileName=t=>(String(t||'').replace(/[\\/:*?"<>|\n\r\t]/g,'').trim().slice(0,40)||'우리 업무 도구')+'.html';
 const LIC_OK=['MIT','Apache-2.0','ISC','CC0-1.0','Unlicense'];
 // 파츠별 추천 업무가 없을 때 보여 줄 분야별 예시
 const CAT_FITS={
@@ -3359,23 +3424,33 @@ function remixInfo(x,trusted){
 }
 function licState(lic){
   const no='원본 코드를 그대로 복사하지 말고, 기능과 화면 구성만 참고해서 처음부터 새로 짜 줘.';
-  if(lic===null)return {cls:'',label:'이용 조건 미확인 · 기능만 참고',line:'원본의 이용 조건(라이선스)을 확인하지 못했어. '+no};
-  if(LIC_OK.includes(lic))return {cls:'ok',label:lic+' · 고쳐 써도 되는 공개 조건',line:`원본은 참고와 수정이 허용된 공개 라이선스(${lic})야. 결과물 화면 아래쪽에 원본 이름, 만든 곳, 라이선스를 적어 줘.`};
-  if(!lic)return {cls:'warn',label:'라이선스 표시 없음 · 기능만 참고',line:'원본에 라이선스 표시가 없어. '+no};
-  return {cls:'warn',label:lic+' · 조건 확인 필요',line:`원본 라이선스는 ${lic}야. 조건을 확인하기 전까지는 `+no};
+  if(lic===null)return {cls:'',label:'기능만 본떠요 · 사용 조건 미확인',line:'원본의 이용 조건(라이선스)을 확인하지 못했어. '+no};
+  if(LIC_OK.includes(lic))return {cls:'ok',label:'✅ 고쳐 써도 되는 공개 도구 ('+lic+')',line:`원본은 참고와 수정이 허용된 공개 라이선스(${lic})야. 결과물 화면 아래쪽에 원본 이름, 만든 곳, 라이선스를 적어 줘.`};
+  if(!lic)return {cls:'warn',label:'기능만 본떠요 · 사용 조건 표시 없음',line:'원본에 라이선스 표시가 없어. '+no};
+  return {cls:'warn',label:'기능만 본떠요 · 사용 조건 확인 필요',line:`원본 라이선스는 ${lic}야. 조건을 확인하기 전까지는 `+no};
 }
 function remixPrompt(i,d){
   const v=k=>String(d[k]||'').trim(),L=licState(i.lic),bot=d.shape==='bot';
   const src=[`- 이름: ${i.name}`,i.by?`- 만든 곳: ${i.by}`:'',i.what?`- 하는 일: ${i.what}`:'',i.frame?`- 뼈대: ${i.frame}`:'',i.usage?`- 사용법:\n${i.usage}`:'',i.url?`- 주소: ${i.url}`:'',(i.src&&i.src!==i.url)?`- 원본 코드: ${i.src}`:'',`- 이용 조건: ${L.line}`,i.swap.length?`- 우리 기준으로 바꿔 끼울 부분: ${i.swap.join(' / ')}`:'',i.how?`- 참고: ${i.how}`:''].filter(Boolean).join('\n');
-  const law=v('basis')?`${v('date')?'(기준일: '+v('date')+')\n':''}<<<\n${v('basis')}\n>>>`:'';
+  const laws=v('laws');
+  const lawFind='네가 국가법령정보센터(law.go.kr)나 자치법규정보시스템(elis.go.kr)을 열어 볼 수 있으면 지금 시행 중인 원문을 직접 찾아 읽어. 찾은 조문은 법령 이름·조문 번호·시행일을 밝히고 핵심 문장을 그대로 인용해서, 규칙을 만들기 전에 나에게 먼저 확인받아. 열어 볼 수 없거나 원문을 못 찾으면 기억으로 메우지 말고, 나에게 원문을 붙여 달라고 하면서 찾는 방법(사이트에서 법령 이름 검색 → 해당 조문과 별표 복사)을 쉽게 알려 줘.';
+  const law=v('basis')?`${v('date')?'(기준일: '+v('date')+')\n':''}<<<\n${v('basis')}\n>>>${laws?'\n(관련 법령·조례: '+laws+')':''}`
+    :laws?`내가 아는 근거 법령·조례: ${laws}\n${lawFind}`:'';
+  const noLaw='근거 법령·조례를 아직 적지 않았어. 내 업무를 듣고 관련될 만한 법령·조례 후보를 쉬운 말로 제시해 줘. 내가 맞다고 한 것만 써. '+lawFind+' 우리 기관 내부 지침처럼 인터넷에 없는 기준이면 나에게 원문을 달라고 해 줘.';
   const slotTxt=i.inputs.map(s=>`■ ${str(s.label,80)}\n${v('s_'+s.k)||(s.need?'(아직 안 적음. 만들기 전에 나에게 물어봐 줘.)':'(없음)')}`).join('\n\n');
   const basis=i.inputs.length
-    ?slotTxt+'\n\n■ 근거 조례·지침 원문\n'+(law||'(아직 없음. 판정·기한·금액 같은 기준이 들어가면 원문을 달라고 먼저 요청해 줘. 추측해서 정하지 마.)')
-    :(law||'아직 붙이지 않았어. 만들기 전에 나에게 조례·지침·매뉴얼 원문을 달라고 먼저 요청해 줘. 원문 없이 기준을 추측해서 만들지 마.');
+    ?slotTxt+'\n\n■ 근거 법령·조례·지침\n'+(law||'(아직 없음. 판정·기한·금액 같은 기준이 들어가면 근거부터 나에게 물어봐 줘. '+lawFind+')')
+    :(law||noLaw);
   // 원본 코드를 읽고 정리해 둔 명세서가 있으면 지시문에 싣는다 (기능을 짐작해 짓는 대신 원본 구조를 따라 기준만 갈아 끼우게)
   const sp=i.spec,ls=(a,f)=>(Array.isArray(a)?a:[]).map(f).join('\n');
   const specTxt=sp?`\n[원본 구조 — 원본 코드를 직접 읽고 정리한 명세서 (${str(sp.ver,60)})]\n- 규모: ${str(sp.size,100)}\n- 처리 순서:\n${ls(sp.flow,(t,n)=>'  '+(n+1)+'. '+str(t,240))}\n- 원본이 지키는 규칙 (우리 판에서도 그대로 지켜 줘):\n${ls(sp.rules,t=>'  - '+str(t,240))}\n- 우리 기준으로 바꿔 끼울 곳 (원본 파일 위치):\n${ls(sp.spots,t=>'  - '+str(t,240))}\n${sp.single?'- HTML 한 파일로 옮길 범위: '+str(sp.single,500)+'\n':''}${sp.code?'- 원본 핵심 코드 요약 (구조 참고용):\n<<<\n'+str(sp.code,3000)+'\n>>>\n':''}`:'';
-  const cases=v('cases')?`<<<\n${v('cases')}\n>>>`:'아직 없어. 만들기 전에 실제로 처리한 사례 3건 이상(조건과 담당자의 판단 결과)을 나에게 요청해 줘. 기준 숫자와 딱 같은 값, 바로 아래·위 값 사례를 꼭 포함하게 해 줘.';
+  const cases=v('cases')?`<<<\n${v('cases')}\n>>>\n(숫자 기준이 있는데 기준값과 딱 같은 값, 바로 아래·위 값 사례가 없으면 네가 예시를 만들어 내 판단을 물어봐 줘.)`:'아직 없어. 규칙을 확인받은 뒤, 내가 실제로 처리했던 건을 한 건씩 쉬운 말로 물어봐 줘 (조건과 결과만, 이름·주소 같은 개인정보는 빼고). 숫자 기준이 있으면 기준값과 딱 같은 값, 바로 아래·위 값의 예시를 네가 만들어 내 판단을 물어봐 줘. 이렇게 3건 이상 모아 검증에 써.';
+  const talk=`[대화 방식]
+- 나는 코딩을 몰라. 전문용어 없이 쉬운 말로 해 줘. 코드는 마지막 결과물에만 써.
+- 필요한 걸 물을 때는 한 번에 하나씩 물어보고, 고를 수 있는 보기나 예시 답을 같이 보여 줘.
+- 내가 "모름"이라고 하면 그 항목은 "확인 필요"로 두고 넘어가. 모르는 걸 그럴듯하게 채우지 마.
+- 아래에 "아직 안 적음·아직 없어"라고 된 칸은 대화하면서 하나씩 채워 줘.`;
+  const check='완성본을 주기 직전에 스스로 점검해서 표로 보여 줘: ① 모든 규칙·판정·문구에 근거(조문 번호)가 붙었는지 ② 원문에 없는 숫자나 조건을 넣지 않았는지 ③ 처리 사례가 모두 담당자 판단과 같은지 ④ 원본 기관의 이름·기준·서식이 남아 있지 않은지. 하나라도 아니면 고친 뒤에 줘.';
   // 원본 코드는 사용자가 붙여 넣지 않아도 된다: 명세서가 없고 공개 라이선스면 AI가 주소를 직접 열어 읽게 한다
   const code=v('code')?`\n[원본 코드 — 구조 참고용]\n<<<\n${v('code')}\n>>>\n`
     :(!sp&&i.src&&LIC_OK.includes(i.lic))?`\n[원본 코드 읽기]\n위 원본 코드 주소를 네가 열어 볼 수 있으면 README와 핵심 파일을 직접 읽고 그 구조를 따라 만들어 줘. 열 수 없으면 위 설명만으로 만들고, 원본을 보지 못해 짐작한 부분은 따로 알려 줘. 나에게 코드를 찾아 붙여 넣어 달라고 하지는 마.\n`:'';
@@ -3394,6 +3469,8 @@ function remixPrompt(i,d){
 다른 기관 도구(원본 파츠)의 방식을 본떠, 우리 기관 기준으로 판정하는 도구를 만들려고 해.
 코드는 이미 있어. 「${S.name}」라는 HTML 파일이 완성돼 있고, 파일 맨 위의 「기준표(JSON)」만 바꾸면 우리 도구가 돼.
 그러니 너는 코드를 짜지 말고, 아래 [기준표 형식]에 맞는 기준표 JSON만 만들어 줘.
+
+${talk}
 
 [나와 내 업무]
 ${v('who')||'아직 적지 않았어. 먼저 내 부서와 담당 업무를 물어봐 줘.'}
@@ -3426,13 +3503,16 @@ ${cases}
 2. 내가 규칙 표를 확인하면, 기준표 JSON을 \`\`\`json 코드 블록 하나로만 보여 줘. 설명은 코드 블록 밖에 써 줘.
 3. cases의 사례마다 이 기준표로 나올 판정을 표로 미리 보여 줘. 담당자 판단과 다르면 이유를 설명하고 기준표를 고쳐 줘.
    그리고 숫자 기준(이상·이하·초과·미만)마다 기준값과 딱 같은 값, 바로 아래·위 값을 넣었을 때의 판정을 따로 표로 보여 줘. 조문의 「이상·이하·초과·미만」과 맞는지 내가 확인할 수 있게.
-4. 마지막으로 조례가 개정되면 기준표의 어느 항목을 고치면 되는지 알려 줘.
+4. ${check}
+5. 마지막으로 조례가 개정되면 기준표의 어느 항목을 고치면 되는지 알려 줘.
 
 [참고 — 내가 할 일]
-뼈대 파일을 열어 「기준표 바꾸기」에 네가 준 JSON을 붙여 넣고 「확인하고 적용」을 누른 뒤, 「검증 사례」를 확인하고 「완성 파일 내려받기」를 누를 거야.`;
+나는 네 마지막 답변을 통째로 복사해 우리 플랫폼에 붙여 넣을 거야. 플랫폼이 답변에서 기준표 JSON을 골라 뼈대 파일에 넣어 줘. 그러니 최종 기준표는 \`\`\`json 코드 블록 하나로만 주고, 고칠 때마다 일부만 주지 말고 기준표 전체를 다시 줘.`;
   }
   return `너는 공무원 업무용 도구를 만들어 주는 개발 도우미야. 나는 코딩을 잘 몰라.
 다른 기관에서 만든 도구(원본 파츠)를 본떠, 우리 기관 기준에 맞는 전용 도구를 만들어 줘.
+
+${talk}
 
 [나와 내 업무]
 ${v('who')||'아직 적지 않았어. 먼저 내 부서와 담당 업무를 물어봐 줘.'}
@@ -3451,10 +3531,12 @@ ${rules}
 
 [만드는 순서]
 1. 먼저 [우리 시 기준]에서 뽑은 규칙을 표로 정리해 보여 주고, 원본 파츠의 기준과 달라지는 점을 알려 줘. 애매한 조문은 나에게 질문해 줘.
-2. 내가 규칙 표를 확인하면 ${bot?'완성된 지침 전문을':'완성된 코드를 파일 하나로 처음부터 끝까지'} 보여 줘.
-3. [정답을 아는 처리 사례]를 하나씩 넣었을 때 나오는 결과와 담당자의 판단을 표로 비교해 줘. 다르면 이유를 설명하고 고쳐 줘.
+2. [정답을 아는 처리 사례]를 하나씩 넣었을 때 나올 결과와 담당자의 판단을 표로 비교해 줘. 다르면 이유를 설명하고 규칙을 고쳐 줘.
    숫자 기준(이상·이하·초과·미만)이 있으면 기준값과 딱 같은 값, 바로 아래·위 값의 결과도 따로 보여 줘.
-4. 마지막으로 내가 직접 테스트하는 방법과, 조례가 개정됐을 때 고칠 곳을 알려 줘.`;
+3. ${check}
+4. 그다음 ${bot?'완성된 지침 전문을 처음부터 끝까지 한 번에':'완성된 코드를 \`\`\`html 코드 블록 하나로, 처음부터 끝까지 생략 없이 (“기존과 동일” 같은 줄임 금지)'} 보여 줘.
+5. 마지막으로 내가 직접 테스트하는 방법과, 조례가 개정됐을 때 고칠 곳을 쉬운 말로 알려 줘.
+${bot?'':'\n[참고 — 내가 할 일]\n나는 네 마지막 답변을 통째로 복사해 우리 플랫폼에 붙여 넣을 거야. 플랫폼이 답변에서 HTML 코드를 골라 파일로 만들어 줘. 그러니 고칠 때도 일부만 주지 말고 코드 전체를 다시 줘.'}`;
 }
 /* 파일에서 글 뽑기: 이 브라우저 안에서만 읽고 어디에도 보내지 않는다 (PDF만 읽기 도구를 cdnjs에서 받아 옴) */
 const RX_ACCEPT='.hwpx,.pdf,.docx,.txt,.md,.csv,.htm,.html,.hwp';
@@ -3574,26 +3656,29 @@ function openRemix(x,trusted,want){
   const i=remixInfo(x,trusted),L=licState(i.lic),d=remixDraft[i.id]=remixDraft[i.id]||{shape:'html'};
   if(want&&!String(d.want||'').trim())d.want=str(want,150);
   let step=0;
-  const STEPS=['내 업무','우리 기준','지시문 복사'];
+  const STEPS=['내 업무','근거·사례','AI에게 맡기기'];
   const out=h('textarea',{class:'prompt-box',readonly:true,rows:'10','aria-label':'만들어진 지시문'});
   const ready=h('div',{class:'remix-ready','aria-live':'polite'}),count=h('span',{class:'note'});
   const bnd=h('div',{class:'rx-bound','aria-live':'polite'});
   const upd=()=>{
     out.value=remixPrompt(i,d);
-    const need=i.inputs.length?[['who','내 업무'],...i.inputs.filter(s=>s.need).map(s=>['s_'+s.k,str(s.short||s.label,14)]),['cases','검증 사례']]:[['who','내 업무'],['basis','우리 시 기준 원문'],['cases','검증 사례']];
-    ready.replaceChildren(h('span',{class:'note',text:'준비물'}),...need.map(([k,l])=>{const on=!!String(d[k]||'').trim();return h('span',{class:on?'on':'',text:(on?'✔ ':'○ ')+l});}));
+    const need=[[['who'],'내 업무'],...i.inputs.filter(s=>s.need).map(s=>[['s_'+s.k],str(s.short||s.label,14)]),[['laws','basis'],'근거 법령'],[['cases'],'처리 사례']];
+    ready.replaceChildren(h('span',{class:'note',text:'적은 것'}),...need.map(([ks,l])=>{const on=ks.some(k=>!!String(d[k]||'').trim());return h('span',{class:on?'on':'',text:(on?'✔ ':'○ ')+l});}));
+    const bot=d.shape==='bot';if(skelBox)skelBox.hidden=bot;if(htmlBox)htmlBox.hidden=bot||!!i.skel;if(botNote)botNote.hidden=!bot;
     count.textContent=`${out.value.length.toLocaleString()}자`;
     const src=[d.basis,...i.inputs.map(s=>d['s_'+s.k])].join('\n'),b=rxBoundary(src);
-    bnd.replaceChildren(h('b',{text:'🎯 경계값 사례를 꼭 넣어 주세요'}),
-      h('p',{class:'note',text:'판정 도구는 기준 숫자와 딱 같은 값, 바로 아래·위 값에서 가장 많이 틀려요. 「이상·이하·초과·미만」이 맞게 들어갔는지 이 값들로 확인돼요.'}),
-      b.length?h('ul',{},b.map(t=>h('li',{text:t}))):h('p',{class:'note',text:'위에 기준 원문을 붙이면 「6㎡ 이상」 같은 숫자 기준을 찾아 추천 값을 보여 드려요.'}));
+    bnd.hidden=!b.length;
+    bnd.replaceChildren(...(b.length?[h('b',{text:'🎯 이런 값으로 사례를 적으면 정확해져요'}),
+      h('p',{class:'note',text:'판정은 기준 숫자와 딱 같은 값, 바로 아래·위 값에서 가장 자주 틀려요. 안 적어도 AI가 물어봐요.'}),
+      h('ul',{},b.map(t=>h('li',{text:t})))]:[]));
   };
   const fld=(k,label,tag,ph,max,rows)=>{
     const el=h(tag,{id:'rx-'+k,maxlength:String(max),placeholder:ph,rows:rows?String(rows):null});
     el.value=str(d[k],max);el.addEventListener('input',()=>{d[k]=el.value;upd();});
     return h('div',{class:'field'},h('label',{for:'rx-'+k,text:label}),el);
   };
-  const shapes=h('div',{class:'radios rx-shapes',role:'radiogroup','aria-label':'결과물 모양'},[['html','🌐 HTML 도구 (파일 하나)'],['bot','🤖 AI 챗봇 지침']].map(([k,l])=>{
+  let skelBox=null,htmlBox=null,botNote=null;
+  const shapes=h('div',{class:'radios rx-shapes',role:'radiogroup','aria-label':'결과물 모양'},[['html','🌐 PC에서 여는 도구 파일 (추천)'],['bot','🤖 AI 챗봇 지침 (GPTs·Claude 프로젝트용)']].map(([k,l])=>{
     const r=h('input',{type:'radio',name:'rx-shape',id:'rx-shape-'+k,value:k,checked:(d.shape||'html')===k});
     r.addEventListener('change',()=>{d.shape=k;upd();});
     return h('label',{for:'rx-shape-'+k},r,l);
@@ -3605,7 +3690,7 @@ function openRemix(x,trusted,want){
   const srcCard=fill(h('div',{class:'remix-src'}),
     h('div',{class:'remix-top'},h('b',{text:'원본 · '+i.name}),h('span',{class:'lic '+L.cls,text:L.label})),
     h('p',{text:i.frame||i.what}),
-    i.skel?h('p',{class:'fd-why',text:'🦴 '+SKELS[i.skel].name+'가 준비돼 있어요. AI는 코드를 짜지 않고 기준표만 채워요.'}):null,
+    i.skel?h('p',{class:'fd-why',text:'🦴 미리 만들어 둔 판정 도구 틀이 있어요. AI는 우리 기준만 채우면 돼서, 코딩 없이 오류 적게 완성돼요.'}):null,
     fill(h('details',{class:'remix-more'}),h('summary',{text:'원본 자세히 보기 (만든 곳 · 바꿔 끼울 부분 · 원본 코드)'}),
       i.by?h('p',{class:'tool-meta',text:'만든 곳: '+i.by}):null,
       i.swap.length?h('div',{},h('span',{class:'lb',text:'우리 기준으로 바꿔 끼울 부분'}),h('ul',{},i.swap.map(t=>h('li',{text:t})))):null,
@@ -3625,6 +3710,7 @@ function openRemix(x,trusted,want){
     fld('who','① 내 부서와 담당 업무','input','예) 제주시 ○○과, 옥외광고물 허가·신고 담당',80),
     fld('want','② 만들고 싶은 것 (선택)','input',i.ex?'예) '+i.ex:'예) 조건을 넣으면 우리 시 기준으로 판정해 주는 도구',150),
     fits,
+    h('div',{class:'rx-quick'},h('button',{type:'button',class:'btn',text:'⚡ 이것만 적고 바로 AI에게 맡기기',onclick:()=>go(2)}),h('span',{class:'note',text:'근거 법령과 처리 사례는 AI가 대화로 하나씩 물어봐요.'})),
     fill(h('details',{class:'remix-more'}),h('summary',{text:'고급 설정 (결과물 모양)'}),
       h('div',{class:'field'},h('span',{class:'lb',text:'결과물 모양'}),shapes),
       /* 원본 코드: 기본은 아무것도 안 해도 되게. 뼈대 파츠는 코드가 필요 없고, 명세서·원본 주소는 지시문에 자동으로 들어간다 */
@@ -3637,36 +3723,82 @@ function openRemix(x,trusted,want){
           fld('code','원본 코드 붙여 넣기 (선택)','textarea','여기에 붙여 넣으세요. 여러 파일이면 이어서 붙여 넣어도 돼요.',60000,4)))
       :null));
   /* ② 우리 기준 */
+  const lawFld=fld('laws','③ 관련 법령·조례 이름 (아는 만큼만 · 몰라도 돼요)','input','예) 제주특별자치도 ○○ 조례 (모르면 비워 두세요)',300);
+  const basisMore=fill(h('details',{class:'remix-more'}),h('summary',{text:'조례·지침 원문이 손에 있으면 붙여 넣기 (더 정확해져요 · 내부 지침은 꼭)'}),
+    rxAttachFiles(fld('basis','원문 (요약하지 말고 조문·별표 그대로)','textarea','조문과 별표를 그대로 붙여 넣거나, 파일(한글·PDF·워드)을 여기로 끌어다 놓으세요.',60000,5)),
+    fld('date','기준일 (선택)','input','예) 2026. 11. 18. 현재 시행 기준',40));
   const pane1=fill(h('div',{class:'rx-pane',hidden:true}),
     ...(i.inputs.length?[
       h('div',{class:'rx-slots'},
-        h('b',{class:'rx-slots-h',text:'③ 우리 시 기준 — 원본에서 바꿔 끼울 곳마다 채워 주세요'}),
+        h('b',{class:'rx-slots-h',text:'우리 것으로 바꿔 끼울 곳 — 아는 칸만 채우세요'}),
         h('p',{class:'note',text:'칸마다 보라색 “원본:”에 원본 도구가 쓰던 값이 있어요. 그 자리에 우리 것을 적으면 돼요. 모르는 칸은 비워 두면 AI가 물어봐요.'}),
         ...i.inputs.map(s=>{
-          const f=fld('s_'+s.k,(s.need?'':'(선택) ')+str(s.label,80),s.multi?'textarea':'input',str(s.ph,300),s.file?60000:3000,s.multi?3:null);
+          const f=fld('s_'+s.k,str(s.label,80),s.multi?'textarea':'input',str(s.ph,300),s.file?60000:3000,s.multi?3:null);
           if(s.hint)f.insertBefore(h('span',{class:'rx-hint',text:'원본: '+str(s.hint,200)}),f.lastChild);
           return s.file?rxAttachFiles(f):f;
-        })),
-      rxAttachFiles(fld('basis','③-2 근거 조례·지침 원문 (선택 · 판정·기한·금액 기준이 있으면 꼭)','textarea','관련 조문과 별표를 그대로 붙여 넣거나 파일을 끌어다 놓으세요.',60000,4))]
-    :[rxAttachFiles(fld('basis','③ 우리 시 기준 원문 (조례·지침·매뉴얼을 요약하지 말고 그대로)','textarea','조문과 별표를 그대로 붙여 넣거나, 파일을 여기로 끌어다 놓으세요. 요약본을 넣으면 AI가 빈 곳을 지어낼 수 있어요.',60000,6))]),
-    fld('date','기준일 (선택)','input','예) 2026. 11. 18. 현재 시행 기준',40),
-    fld('cases','④ 정답을 아는 처리 사례 (3건 이상 · 경계값 포함)','textarea','예) 사례 1: 돌출간판, 면적 6㎡(기준과 딱 같음) → 허가 대상, 근거 제○조\n사례 2: 같은 조건, 면적 5.9㎡ → 신고 대상\n사례 3: …',6000,5),
+        }))]:[]),
+    lawFld,basisMore,
+    fld('cases','④ 실제로 처리해 본 사례 (있으면 · 없으면 AI가 물어봐요)','textarea','예) 돌출간판 6㎡(기준과 딱 같은 크기) → 허가 대상\n돌출간판 5.9㎡ → 신고 대상\n이름·주소는 빼고 조건과 결과만 적어 주세요.',6000,4),
     bnd,
-    h('p',{class:'note',text:'⚠ 공개된 조례·지침만 붙여 넣으세요. 비공개 내부 문서와 개인정보는 넣지 마세요. 처리 사례도 이름·주소·연락처는 지우고 조건과 결과만 적어 주세요.'}));
+    h('p',{class:'note',text:'⚠ 공개된 조례·지침만 넣으세요. 비공개 내부 문서와 개인정보(이름·주소·연락처)는 넣지 마세요.'}));
   /* ③ 지시문 복사 */
-  const copyBtn=h('button',{type:'button',class:'btn primary rx-copy',text:'📋 지시문 복사',onclick:async()=>{if(!await copyText(out.value,'지시문을 복사했어요. AI 채팅창에 붙여 넣으세요')){prev.open=true;out.focus();out.select();}}});
+  const copyBtn=h('button',{type:'button',class:'btn sm',text:'📋 지시문만 복사',onclick:async()=>{if(!await copyText(out.value,'지시문을 복사했어요. AI 채팅창에 붙여 넣으세요')){prev.open=true;out.focus();out.select();}}});
   const prev=fill(h('details',{class:'remix-more'}),h('summary',{},'지시문 미리 보기 · ',count),out);
-  const pane2=fill(h('div',{class:'rx-pane',hidden:true}),
-    h('div',{class:'guide-box rx-final'},h('b',{text:'🤖 다 됐어요. 지시문을 복사해 AI 채팅창(Claude·ChatGPT 등)에 붙여 넣으세요'}),ready,
-      h('p',{class:'note',text:'빈 준비물(○)이 있어도 괜찮아요. AI가 만들기 전에 먼저 물어봐요.'}),copyBtn,prev),
-    i.skel?h('div',{class:'rx-skel'},
-      h('b',{text:'🦴 그다음: 뼈대 파일에 기준표 넣기'}),
-      h('ol',{},['AI가 준 기준표(JSON)를 복사해요.','아래에서 뼈대 파일을 받아 더블클릭으로 열어요.','「기준표 바꾸기」에 붙여 넣고 「확인하고 적용」을 눌러요.','「검증 사례」와 「경계값 점검」이 담당자 판단과 같은지 보고 「완성 파일 내려받기」를 눌러요.'].map(t=>h('li',{text:t}))),
-      h('div',{class:'btns-row'},
-        h('button',{type:'button',class:'btn sm primary',text:'🦴 뼈대 파일 받기',onclick:()=>skelDownload(i.skel)}),
-        h('button',{type:'button',class:'btn sm',text:'뼈대 코드 복사',onclick:()=>copyText(skelCode(i.skel),'뼈대 코드를 복사했어요. 메모장에 붙여 넣고 .html로 저장하세요')})),
-      h('p',{class:'note',text:'파일 받기가 안 되는 화면에서는 「뼈대 코드 복사」 → 메모장에 붙여 넣기 → 이름을 ○○.html로 저장하면 돼요. '+SKELS[i.skel].what})):
-      h('p',{class:'note',text:'AI가 만든 HTML 파일을 받으면 더블클릭해서 열어 보고, ④에 적은 사례를 하나씩 넣어 담당자 판단과 같은지 확인하세요.'}));
+  const AIS=[['Claude','https://claude.ai/new'],['ChatGPT','https://chatgpt.com/'],['Gemini','https://gemini.google.com/app']];
+  const openBox=h('div',{class:'rx-open'},
+    h('b',{text:'⑤ AI에게 보내기'}),
+    h('ol',{},['아래 버튼을 누르면 지시문이 복사되고 AI 창이 새로 열려요.','AI 입력칸을 누르고 붙여 넣어요. (PC: Ctrl+V · 휴대폰: 입력칸을 길게 누른 뒤 「붙여넣기」)','보내기를 누르고, AI가 묻는 말에 하나씩 답해요. 모르면 “모름”이라고 해도 괜찮아요.'].map(t=>h('li',{text:t}))),
+    h('div',{class:'btns-row'},...AIS.map(([n,u],k)=>h('a',{class:'btn'+(k===0?' primary':''),href:u,target:'_blank',rel:'noopener noreferrer',text:'📋 복사하고 '+n+' 열기',onclick:()=>{copyText(out.value,'지시문을 복사했어요. 열린 AI 창에 붙여 넣으세요').then(ok=>{if(!ok){prev.open=true;out.focus();out.select();}});}})),copyBtn),
+    ready,
+    h('p',{class:'note',text:'업무망 PC에서는 AI 사이트가 막혀 있을 수 있어요. 인터넷 PC나 휴대폰을 쓰세요. 법령을 직접 찾아 읽으려면 AI의 웹 검색이 켜져 있어야 해요. 못 찾으면 AI가 원문을 달라고 하면서 찾는 법을 알려 줘요.'}),
+    prev);
+  /* ⑥ AI 답변 → 완성 파일: 답변을 통째로 붙여 넣으면 필요한 부분만 골라 파일로 만든다 */
+  const makeBox=isSkel=>{
+    const ans=h('textarea',{class:'code',maxlength:'400000',placeholder:'AI의 마지막 답변을 통째로 복사해 여기에 붙여 넣으세요. 설명 글이 섞여 있어도 필요한 부분만 골라내요.','aria-label':'AI 답변'});
+    const msg=h('div',{'aria-live':'polite'});
+    const fixLine=errs=>isSkel
+      ?'방금 준 기준표에 아래 문제가 있어. 고쳐서 기준표 전체를 ```json 코드 블록 하나로 다시 줘.\n· '+errs.join('\n· ')
+      :'방금 준 코드에 아래 문제가 있어. 고쳐서 코드 전체를 처음부터 끝까지 ```html 코드 블록 하나로 다시 줘. 줄이거나 생략하지 마.\n· '+errs.join('\n· ');
+    const make=async()=>{
+      msg.replaceChildren();
+      const raw=ans.value;
+      if(!raw.trim()){msg.append(h('p',{class:'err',text:'먼저 AI 답변을 붙여 넣어 주세요.'}));return;}
+      let errs=[],code='',name='';
+      if(isSkel){
+        const cfg=rxPickJson(raw);
+        if(!cfg)errs=['답변에서 기준표를 찾지 못했어요. AI가 아직 묻는 중이라면 대화를 마친 뒤 마지막 답변을 붙여 넣어 주세요.'];
+        else{delete cfg.example;errs=rxCfgCheck(cfg);if(!errs.length){code=rxSkelFill(i.skel,cfg);name=rxFileName(cfg.title);if(!code)errs=['판정 도구 틀을 찾지 못했어요. 화면을 새로고침한 뒤 다시 해 주세요.'];}}
+      }else{
+        code=rxPickHtml(raw);errs=rxHtmlCheck(code);
+        const t=/<title[^>]*>([^<]*)<\/title>/i.exec(code||'');name=rxFileName(t&&t[1]);
+      }
+      if(errs.length){
+        msg.append(h('p',{class:'err',text:'아직 파일로 만들 수 없어요:\n· '+errs.join('\n· ')}),
+          h('p',{class:'note',text:'아래 버튼으로 고쳐 달라는 말을 복사해 AI에게 보내고, 새 답변을 다시 붙여 넣으세요.'}),
+          h('button',{type:'button',class:'btn sm',text:'📋 AI에게 고쳐 달라는 말 복사',onclick:()=>copyText(fixLine(errs),'복사했어요. AI 창에 붙여 넣으세요')}));
+        return;
+      }
+      await saveHtml(name,code,'완성 파일을 받았어요. 더블클릭해서 열어 보세요');
+      msg.append(h('p',{class:'rx-good',text:isSkel
+        ?'✅ 「'+name+'」을 만들었어요.\n더블클릭해 열면 「검증 사례」 칸에서 담당자 판단과 같은지 바로 보여요. 다르면 그 내용을 AI에게 말해 고친 뒤, 새 답변을 다시 붙여 넣으면 돼요.'
+        :'✅ 「'+name+'」을 만들었어요.\n더블클릭해 열고, 실제로 처리했던 사례를 하나씩 넣어 담당자 판단과 같은지 확인하세요. 다르면 AI에게 말해 고친 뒤, 새 답변을 다시 붙여 넣으면 돼요.'}));
+    };
+    return h('div',{class:'rx-make'},
+      h('b',{text:'⑥ AI 답변으로 완성 파일 만들기'}),
+      h('p',{class:'note',text:isSkel?'AI와 대화를 마치면, 기준표가 들어 있는 마지막 답변을 통째로 복사해 붙여 넣으세요. 판정 도구 틀에 넣어 완성 파일로 만들어 드려요.':'AI와 대화를 마치면, 코드가 들어 있는 마지막 답변을 통째로 복사해 붙여 넣으세요. 바로 열리는 파일로 만들어 드려요.'}),
+      ans,h('div',{class:'btns-row'},h('button',{type:'button',class:'btn primary',text:'✅ 확인하고 완성 파일 받기',onclick:make})),msg);
+  };
+  skelBox=i.skel?fill(h('div',{class:'rx-skel-wrap'}),makeBox(true),
+    fill(h('details',{class:'remix-more'}),h('summary',{text:'직접 해 보고 싶다면 (판정 도구 틀 받기)'}),
+      h('div',{class:'rx-skel'},
+        h('ol',{},['아래에서 판정 도구 틀 파일을 받아 더블클릭으로 열어요.','「기준표 바꾸기」에 AI 답변을 통째로 붙여 넣고 「확인하고 적용」을 눌러요.','「검증 사례」가 담당자 판단과 같은지 보고 「완성 파일 내려받기」를 눌러요.'].map(t=>h('li',{text:t}))),
+        h('div',{class:'btns-row'},
+          h('button',{type:'button',class:'btn sm',text:'🦴 판정 도구 틀 받기',onclick:()=>skelDownload(i.skel)}),
+          h('button',{type:'button',class:'btn sm',text:'틀 코드 복사',onclick:()=>copyText(skelCode(i.skel),'코드를 복사했어요. 메모장에 붙여 넣고 .html로 저장하세요')})),
+        h('p',{class:'note',text:'파일 받기가 안 되는 화면에서는 「틀 코드 복사」 → 메모장에 붙여 넣기 → 이름을 ○○.html로 저장하면 돼요.'})))):null;
+  htmlBox=makeBox(false);
+  botNote=h('p',{class:'note',text:'🤖 AI가 준 지침 전문을 복사해 ChatGPT의 GPTs 「지침」 칸이나 Claude 프로젝트의 「프로젝트 지침」 칸에 붙여 넣으면 챗봇이 완성돼요. 처리 사례로 질문해 보고 답이 맞는지 확인하세요.'});
+  const pane2=fill(h('div',{class:'rx-pane',hidden:true}),openBox,skelBox,htmlBox,botNote);
   const panes=[pane0,pane1,pane2];
   const bar=h('ol',{class:'rx-steps'},STEPS.map((t,n)=>h('li',{},h('button',{type:'button',text:(n+1)+'. '+t,onclick:()=>go(n)}))));
   const back=h('button',{type:'button',class:'btn',text:'← 이전',onclick:()=>go(step-1)});
@@ -3677,12 +3809,12 @@ function openRemix(x,trusted,want){
     panes.forEach((p,k)=>{p.hidden=k!==step;});
     [...bar.children].forEach((li,k)=>{li.className=k<step?'done':k===step?'on':'';const b=li.firstChild;if(k===step)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});
     back.hidden=step===0;next.hidden=step===2;
-    next.textContent=step===0?'다음: 우리 기준 넣기 →':'다음: 지시문 만들기 →';
+    next.textContent=step===0?'다음: 근거·사례 적기 (선택) →':'다음: AI에게 맡기기 →';
     upd();
     const m=MODAL&&MODAL.querySelector('.modal');if(m)m.scrollTop=0;
     const f=panes[step].querySelector(step===2?'.rx-copy':'input,textarea');if(f)f.focus({preventScroll:true});
   }
-  openModal('🧩 내 업무에 맞게 고치기',fill(form,srcCard,bar,...panes,nav),'세 단계만 채우면 AI에게 붙여 넣을 지시문이 만들어져요. 적은 내용은 저장되지 않아요.');
+  openModal('🧩 내 업무에 맞게 고치기',fill(form,srcCard,bar,...panes,nav),'내 업무 한 줄만 적으면 AI에게 보낼 지시문이 만들어지고, AI가 나머지를 물어보며 함께 만들어요. 적은 내용은 저장되지 않아요.');
   go(0);
 }
 function kindActions(t){
