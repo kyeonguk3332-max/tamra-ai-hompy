@@ -1442,7 +1442,7 @@ header.top .org{font-size:13px;color:var(--ink-2)}
 .why h3{margin:0 0 6px;font-size:14px}
 .why ul{margin:0;padding-left:18px}
 .why li{margin-bottom:4px}
-.basis{display:inline-block;font-size:12.5px;color:var(--navy);background:var(--navy-soft);border-radius:4px;padding:0 6px;margin-left:4px;white-space:nowrap}
+.basis{display:inline-block;max-width:100%;font-size:12.5px;line-height:1.5;color:var(--navy);background:var(--navy-soft);border-radius:4px;padding:1px 6px;margin-left:4px;white-space:normal;overflow-wrap:anywhere}
 .miss{color:var(--check);font-weight:700}
 section.more{margin-top:22px}
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
@@ -1681,7 +1681,7 @@ function renderResult(input, pop) {
     box.append(el("div", { class: "verdict" }, el("div", { class: `stamp ${o.tone || "info"}${pop ? " pop" : ""}`, text: o.label }),
       el("p", {}, res.byDefault ? "어느 규칙에도 해당하지 않아 기준표의 기본 판정을 따랐어요." : `규칙 ${res.hits.filter((r) => r.then === res.outcome).length}개에 해당해요.`)));
     // 판정을 만든 규칙과, 판정 순서에서 밀린 규칙을 나눠 보여 준다 (자가점검처럼 여러 규칙이 함께 걸릴 때 헷갈리지 않게)
-    const li = (r) => el("li", {}, `${r.note || condText(r.if)}`, el("span", { class: "basis", text: (r.basis || "근거 확인 필요") + " · 조건: " + condText(r.if) }));
+    const li = (r) => el("li", { title: "조건: " + condText(r.if) }, `${r.note || condText(r.if)}`, el("span", { class: "basis", text: r.basis || "근거 확인 필요" }));
     const win = res.hits.filter((r) => r.then === res.outcome), rest = res.hits.filter((r) => r.then !== res.outcome);
     const ul = el("ul");
     if (res.byDefault) ul.append(el("li", {}, "기본 판정", el("span", { class: "basis", text: CFG.default.basis || "근거 확인 필요" })));
