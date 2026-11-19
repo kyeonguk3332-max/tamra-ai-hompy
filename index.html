@@ -1416,6 +1416,7 @@ header.top .org{font-size:13px;color:var(--ink-2)}
 @media (max-width:760px){.grid{grid-template-columns:1fr}}
 .sheet{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:16px}
 .sheet h2{margin:0 0 10px;font-size:16px}
+[hidden]{display:none!important}
 .field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
 .field label,.field .lab{font-size:13.5px;font-weight:700}
 .field input[type=number],.field select{border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--sheet);min-width:0;width:100%}
@@ -1518,6 +1519,28 @@ const rank = (id) => { const i = (CFG.priority || []).indexOf(id); return i < 0 
    조건 하나: {f, op, v}. 묶음: {all:[…]} · {any:[…]} · {not:{…}}.
    값이 비어 있으면 참·거짓 대신 null(모름)을 돌려 「확인 필요」로 보낸다. 짐작하지 않는다. */
 function blank(v) { return v === undefined || v === null || v === "" || v === "모름"; }
+/* 날짜(date)와 두 날짜 사이 기간(elapsed). 기간은 「만」으로 센다: 만 ○년·만 ○개월은 기념일 당일부터 1 늘고, 일수는 두 날짜의 차이다. */
+function ymd(s) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "")); return m ? [+m[1], +m[2], +m[3]] : null; }
+function elapsedOf(from, to, unit) {
+  const a = ymd(from), b = ymd(to); if (!a || !b) return "";
+  if (unit === "일") return Math.round((Date.UTC(b[0], b[1] - 1, b[2]) - Date.UTC(a[0], a[1] - 1, a[2])) / 864e5);
+  let m = (b[0] - a[0]) * 12 + (b[1] - a[1]); if (b[2] < a[2]) m--;
+  return unit === "개월" ? m : Math.floor(m / 12);
+}
+/* 딱 ○년·○개월 되는 날(기념일 당일)은 기간 계산(첫날 산입 여부)에 따라 판정이 갈릴 수 있어 따로 알린다 */
+function annivNotes(input) {
+  const out = [];
+  for (const f of CFG.fields) if (f.type === "elapsed" && f.unit !== "일") {
+    const a = ymd(input[f.from]), b = ymd(input[f.to]); if (!a || !b || a[2] !== b[2] || (f.unit === "년" && a[1] !== b[1])) continue;
+    const v = elapsedOf(input[f.from], input[f.to], f.unit); if (v > 0) out.push(`「${f.label}」이 딱 ${v}${f.unit} 되는 날이에요. 이날을 기간 안으로 볼지는 첫날을 세는 방식에 따라 달라질 수 있으니 근거 조문으로 확인하세요.`);
+  }
+  return out;
+}
+function withCalc(input) {
+  const out = { ...input };
+  for (const f of CFG.fields) if (f.type === "elapsed" && blank(out[f.id])) { const v = elapsedOf(out[f.from], out[f.to], f.unit); if (v !== "") out[f.id] = v; }
+  return out;
+}
 function test(c, input, miss) {
   if (!c) return true;
   if (c.all) { let u = false; for (const x of c.all) { const r = test(x, input, miss); if (r === false) return false; if (r === null) u = true; } return u ? null : true; }
@@ -1525,7 +1548,8 @@ function test(c, input, miss) {
   if (c.not) { const r = test(c.not, input, miss); return r === null ? null : !r; }
   const v = input[c.f];
   if (blank(v)) { miss.add(c.f); return null; }
-  const n = Number(v), w = Number(c.v);
+  const fd = field(c.f), isDate = fd && fd.type === "date";
+  const n = isDate ? String(v) : Number(v), w = isDate ? String(c.v) : Number(c.v);
   switch (c.op) {
     case "=": return String(v) === String(c.v);
     case "!=": return String(v) !== String(c.v);
@@ -1538,6 +1562,7 @@ function test(c, input, miss) {
   }
 }
 function judge(input) {
+  input = withCalc(input || {});
   const hits = [], waiting = [];
   for (const r of CFG.rules) {
     const miss = new Set(), t = test(r.if, input, miss);
@@ -1575,25 +1600,45 @@ function renderHead() {
 function renderFields() {
   const box = $("#fields"); box.replaceChildren();
   for (const f of CFG.fields) {
-    const id = "f_" + f.id;
+    const id = "f_" + f.id, n0 = box.childElementCount;
     if (f.type === "select") {
       box.append(el("div", { class: "field" }, el("label", { for: id, text: f.label }),
         el("select", { id, name: f.id }, el("option", { value: "", text: "고르세요 (모르면 비워 두기)" }), (f.options || []).map((o) => el("option", { value: o, text: o })))));
     } else if (f.type === "yesno") {
       box.append(el("div", { class: "field", role: "radiogroup", "aria-label": f.label }, el("span", { class: "lab", text: f.label }),
         el("div", { class: "yn" }, ["예", "아니요", "모름"].map((o, i) => el("label", {}, el("input", { type: "radio", name: f.id, value: o, checked: i === 2 }), o)))));
-    } else {
+    } else if (f.type === "date") {
       box.append(el("div", { class: "field" }, el("label", { for: id, text: f.label }),
-        el("div", { class: "num" }, el("input", { type: "number", id, name: f.id, step: "any", inputmode: "decimal" }), f.unit ? el("span", { text: f.unit }) : null)));
+        el("div", { class: "num" }, el("input", { type: "date", id, name: f.id, oninput: recalc, onchange: recalc }))));
+    } else {
+      const auto = f.type === "elapsed";
+      box.append(el("div", { class: "field" }, el("label", { for: id, text: f.label }),
+        el("div", { class: "num" }, el("input", { type: "number", id, name: f.id, step: "any", inputmode: "decimal" }), f.unit ? el("span", { text: auto && f.unit !== "일" ? "만 " + f.unit : f.unit }) : null),
+        auto ? el("span", { class: "small", text: `「${(field(f.from) || { label: f.from }).label}」과 「${(field(f.to) || { label: f.to }).label}」을 넣으면 자동으로 계산돼요.${f.unit === "일" ? "" : " 기념일 당일부터 1 늘어나요."}` }) : null));
     }
+    if (box.childElementCount > n0) box.lastElementChild.dataset.fid = f.id;
+  }
+  showFields();
+}
+/* 「when」이 있는 질문은 그 조건일 때만 보인다 (예: 지식서비스업일 때만 연구소 질문) */
+function shown(f, input) { return !f.when || test(f.when, input, new Set()) === true; }
+function showFields() {
+  const inp = readForm(true);
+  for (const f of CFG.fields) { const d = document.querySelector(`[data-fid="${f.id}"]`); if (d) d.hidden = !shown(f, inp); }
+}
+function recalc() {
+  for (const f of CFG.fields) if (f.type === "elapsed") {
+    const a = document.getElementById("f_" + f.from), b = document.getElementById("f_" + f.to), o = document.getElementById("f_" + f.id);
+    if (a && b && o) { const v = elapsedOf(a.value, b.value, f.unit); if (v !== "") o.value = v; }
   }
 }
-function readForm() {
+function readForm(all) {
   const input = {};
   for (const f of CFG.fields) {
     if (f.type === "yesno") { const c = document.querySelector(`input[name="${f.id}"]:checked`); input[f.id] = c ? c.value : ""; }
-    else { const v = document.getElementById("f_" + f.id).value; input[f.id] = f.type === "number" && v !== "" ? Number(v) : v; }
+    else { const v = document.getElementById("f_" + f.id).value; input[f.id] = (f.type === "number" || f.type === "elapsed") && v !== "" ? Number(v) : v; }
   }
+  if (!all) for (const f of CFG.fields) if (!shown(f, input)) input[f.id] = ""; // 숨은 질문의 값은 판정에 쓰지 않는다
   return input;
 }
 function fillForm(input) {
@@ -1602,10 +1647,12 @@ function fillForm(input) {
     if (f.type === "yesno") { const val = v === true ? "예" : v === false ? "아니요" : blank(v) ? "모름" : v; const r = document.querySelector(`input[name="${f.id}"][value="${val}"]`); if (r) r.checked = true; }
     else document.getElementById("f_" + f.id).value = blank(v) ? "" : v;
   }
+  showFields();
 }
 function resultText(input, res) {
+  input = withCalc(input);
   const lines = [`[${CFG.title}] 판정 결과 (기준일 ${CFG.basisDate || "확인 필요"})`];
-  lines.push("· 넣은 조건: " + CFG.fields.map((f) => `${f.label} ${blank(input[f.id]) ? "모름" : input[f.id] + (f.unit || "")}`).join(", "));
+  lines.push("· 넣은 조건: " + CFG.fields.filter((f) => shown(f, input)).map((f) => `${f.label} ${blank(input[f.id]) ? "모름" : input[f.id] + (f.unit || "")}`).join(", "));
   if (res.status === "done") {
     lines.push("· 판정: " + (outcome(res.outcome) || { label: res.outcome }).label);
     const basis = res.byDefault ? [CFG.default.basis] : res.hits.filter((r) => r.then === res.outcome).map((r) => `${r.basis}${r.note ? " (" + r.note + ")" : ""}`);
@@ -1616,6 +1663,7 @@ function resultText(input, res) {
     if (res.none) lines.push("· 사유: 기준표에 해당하는 규칙이 없어요");
     else lines.push("· 더 필요한 값: " + [...new Set(res.blocking.flatMap((b) => b.miss))].map((id) => (field(id) || { label: id }).label).join(", "));
   }
+  annivNotes(input).forEach((t) => lines.push("· ⚠ " + t));
   lines.push("※ 참고용 도구이며 최종 판단은 담당자가 합니다.");
   return lines.join("\n");
 }
@@ -1627,15 +1675,21 @@ function renderResult(input, pop) {
     return;
   }
   const res = judge(input);
+  const ann = annivNotes(input);
   if (res.status === "done") {
     const o = outcome(res.outcome) || { label: res.outcome, tone: "info" };
     box.append(el("div", { class: "verdict" }, el("div", { class: `stamp ${o.tone || "info"}${pop ? " pop" : ""}`, text: o.label }),
       el("p", {}, res.byDefault ? "어느 규칙에도 해당하지 않아 기준표의 기본 판정을 따랐어요." : `규칙 ${res.hits.filter((r) => r.then === res.outcome).length}개에 해당해요.`)));
-    const why = el("div", { class: "why" }, el("h3", { text: "근거" }));
+    // 판정을 만든 규칙과, 판정 순서에서 밀린 규칙을 나눠 보여 준다 (자가점검처럼 여러 규칙이 함께 걸릴 때 헷갈리지 않게)
+    const li = (r) => el("li", {}, `${r.note || condText(r.if)}`, el("span", { class: "basis", text: (r.basis || "근거 확인 필요") + " · 조건: " + condText(r.if) }));
+    const win = res.hits.filter((r) => r.then === res.outcome), rest = res.hits.filter((r) => r.then !== res.outcome);
     const ul = el("ul");
     if (res.byDefault) ul.append(el("li", {}, "기본 판정", el("span", { class: "basis", text: CFG.default.basis || "근거 확인 필요" })));
-    for (const r of res.hits) ul.append(el("li", {}, `${(outcome(r.then) || { label: r.then }).label} · ${condText(r.if)}${r.note ? " — " + r.note : ""}`, el("span", { class: "basis", text: r.basis || "근거 확인 필요" })));
-    why.append(ul); box.append(why);
+    win.forEach((r) => ul.append(li(r)));
+    box.append(el("div", { class: "why" }, el("h3", { text: "근거" }), ul));
+    if (rest.length) box.append(el("div", { class: "why" }, el("h3", { text: "함께 해당하는 다른 판정 (판정 순서에서 밀렸어요)" }),
+      el("ul", {}, rest.map((r) => el("li", {}, `${(outcome(r.then) || { label: r.then }).label} — ${r.note || condText(r.if)}`, el("span", { class: "basis", text: r.basis || "근거 확인 필요" }))))));
+    if (ann.length) box.append(el("div", { class: "why" }, el("h3", { text: "⚠ 기간 경계" }), el("ul", {}, ann.map((t) => el("li", { class: "miss", text: t })))));
     const docs = (CFG.docs || {})[res.outcome];
     if (docs && docs.length) box.append(el("div", { class: "why" }, el("h3", { text: "필요 서류" }), el("ul", {}, docs.map((d) => el("li", { text: d })))));
   } else {
@@ -1656,11 +1710,11 @@ async function copy(text, btn) {
 }
 
 /* ── 경계값 점검: 숫자 기준(이상·이하·초과·미만)은 딱 그 값과 바로 위·아래에서 틀리기 쉽다 ── */
-const COUNT_UNITS = ["층", "개", "명", "일", "년", "회", "대", "건", "곳", "가구", "세대", "호"];
+const COUNT_UNITS = ["층", "개", "명", "일", "년", "개월", "회", "대", "건", "곳", "가구", "세대", "호"];
 function thresholds() {
   const out = [], seen = new Set();
   const walk = (c) => { if (!c) return; if (c.all || c.any) return (c.all || c.any).forEach(walk); if (c.not) return walk(c.not);
-    const f = field(c.f); if (!f || f.type !== "number" || !["<", "<=", ">", ">="].includes(c.op)) return;
+    const f = field(c.f); if (!f || !["number", "elapsed"].includes(f.type) || !["<", "<=", ">", ">="].includes(c.op)) return;
     const v = Number(c.v); if (!Number.isFinite(v)) return; const k = c.f + "|" + v; if (seen.has(k)) return; seen.add(k); out.push({ f, v }); };
   (CFG.rules || []).forEach((r) => walk(r.if));
   return out.slice(0, 8);
@@ -1673,7 +1727,7 @@ function boundaryBox() {
   const rows = [], missing = [];
   th.forEach(({ f, v }) => {
     const st = stepOf(f, v), base = (cases.find((c) => c.input && f.id in c.input) || {}).input || {};
-    if (!cases.some((c) => c.input && Number(c.input[f.id]) === v)) missing.push(`${f.label} ${v}${f.unit || ""}`);
+    if (!cases.some((c) => c.input && Number(withCalc(c.input)[f.id]) === v)) missing.push(`${f.label} ${v}${f.unit || ""}`);
     [fix(v - st), v, fix(v + st)].forEach((x, i) => {
       const inp = { ...base, [f.id]: x };
       rows.push(el("tr", {}, el("td", { text: i === 1 ? f.label : "" }), el("td", { text: i === 1 ? `${v}${f.unit || ""}` : "" }),
@@ -1748,9 +1802,11 @@ function parseCfg(raw) {
   if (!Array.isArray(cfg.fields) || !cfg.fields.length) errors.push("fields(입력 항목)가 없어요.");
   if (!Array.isArray(cfg.outcomes) || !cfg.outcomes.length) errors.push("outcomes(판정 종류)가 없어요.");
   if (!Array.isArray(cfg.rules)) errors.push("rules(규칙)가 없어요.");
-  (cfg.fields || []).forEach((f) => { if (!f.id || !f.label) errors.push("이름(id·label)이 빠진 입력 항목이 있어요."); if (f.type && !["number", "select", "yesno"].includes(f.type)) errors.push(`입력 항목 ${f.id}의 type은 number·select·yesno 중 하나여야 해요.`); });
+  (cfg.fields || []).forEach((f) => { if (!f.id || !f.label) errors.push("이름(id·label)이 빠진 입력 항목이 있어요."); if (f.type && !["number", "select", "yesno", "date", "elapsed"].includes(f.type)) errors.push(`입력 항목 ${f.id}의 type은 number·select·yesno·date·elapsed 중 하나여야 해요.`);
+    if (f.type === "elapsed") { const tp = (x) => ((cfg.fields || []).find((g) => g.id === x) || {}).type; if (tp(f.from) !== "date" || tp(f.to) !== "date") errors.push(`기간 항목 ${f.id}의 from·to는 date 항목이어야 해요.`); if (!["년", "개월", "일"].includes(f.unit)) errors.push(`기간 항목 ${f.id}의 unit은 년·개월·일 중 하나여야 해요.`); } });
   const walk = (c, where) => { if (!c) return; if (c.all || c.any) return (c.all || c.any).forEach((x) => walk(x, where)); if (c.not) return walk(c.not, where);
     if (!ids.has(c.f)) errors.push(`${where}: 없는 입력 항목 「${c.f}」을 써요.`); if (!(c.op in OPS)) errors.push(`${where}: 모르는 비교 「${c.op}」.`); };
+  (cfg.fields || []).forEach((f) => { if (f.when) walk(f.when, `입력 항목 ${f.id}의 when`); });
   (cfg.rules || []).forEach((r, i) => { const w = `규칙 ${r.id || i + 1}`; if (!outs.has(r.then)) errors.push(`${w}: 판정 「${r.then}」이 outcomes에 없어요.`); if (!r.basis) errors.push(`${w}: 근거(basis)가 없어요.`); walk(r.if, w); });
   if (cfg.default && !outs.has(cfg.default.then)) errors.push(`기본 판정 「${cfg.default.then}」이 outcomes에 없어요.`);
   (cfg.cases || []).forEach((c, i) => { if (c.expect !== "check" && !outs.has(c.expect)) errors.push(`사례 ${c.name || i + 1}: 기대 판정 「${c.expect}」이 outcomes에 없어요.`); Object.keys(c.input || {}).forEach((k) => { if (!ids.has(k)) errors.push(`사례 ${c.name || i + 1}: 없는 입력 항목 「${k}」.`); }); });
@@ -1769,8 +1825,10 @@ function download() {
 }
 function renderAll() { renderHead(); renderFields(); lastInput = null; renderResult(null); renderPanel(); }
 
+$("#form").addEventListener("input", showFields);
+$("#form").addEventListener("change", showFields);
 $("#form").addEventListener("submit", (e) => { e.preventDefault(); lastInput = readForm(); renderResult(lastInput, true); });
-$("#reset").addEventListener("click", () => { renderFields(); lastInput = null; renderResult(null); });
+$("#reset").addEventListener("click", () => { setTimeout(() => { renderFields(); lastInput = null; renderResult(null); }); });
 document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => { tab = b.dataset.tab; renderPanel(); }));
 renderAll();
 <\/script>
@@ -1896,7 +1954,7 @@ const EXT_TOOLS=[
    desc:'기관 11개·시스템 15개 점검 항목에 답하면 충족·미흡·확인 필요로 판정하고, 법적 근거와 개선 우선순위를 담은 결과보고서를 보여 줘요.',
    usage:'개인정보 보호 실무자가 만들어 공개한 자가점검 도구예요.\n1. 개인정보 처리 현황을 먼저 확인해요.\n2. 26개 점검 항목에 답하고 증적을 적어요.\n3. 항목별 판정과 결과보고서를 확인하고 인쇄해요.\n실제 개인정보나 비공개 자료는 입력하지 마세요. 결과는 참고용이에요.',
    tags:['개인정보','자가점검','체크리스트','판정','파츠'],
-   part:{src:'https://github.com/dyd5862-lang/grasshopper-privacy-risk-check',lic:'MIT',skel:'judge',
+   part:{type:'check',src:'https://github.com/dyd5862-lang/grasshopper-privacy-risk-check',lic:'MIT',skel:'judge',
     frame:'질문에 답하면 항목별로 충족·미흡·확인 필요를 판정하고, 근거와 개선 우선순위를 담은 결과보고서를 내는 “점검·판정형” 틀',
     swap:['점검 항목(질문) 목록','항목별 판정 기준','항목마다 붙는 근거 조문·안내서','결과보고서 문구'],
     how:'원본은 여러 파일로 된 웹앱이에요. 여기서는 판정 방식과 화면 흐름만 본떠 HTML 한 파일짜리 도구로 다시 만들어요.',
@@ -1906,7 +1964,7 @@ const EXT_TOOLS=[
    desc:'현장 사진을 올리면 자리별로 묶고 주소판을 읽어 순찰일지 문장을 만들고, 한글(.hwpx) 파일로 내려받게 해 줘요.',
    usage:'1. 순찰 사진을 올려요.\n2. 자리별로 묶인 결과와 일지 문장을 확인하고, 판단이 필요한 부분은 직접 채워요.\n3. 한글 파일로 받거나 부서 양식에 붙여요.\n체험 사이트는 하루 사용 한도가 있어요. “수동 전환”을 누르면 AI를 부르지 않아 사진이 브라우저 밖으로 나가지 않는다고 안내하고 있어요.',
    tags:['순찰','현장사진','일지','HWPX','파츠'],
-   part:{src:'https://github.com/patrol-jev/patrol-jev',lic:'MIT',
+   part:{type:'form',src:'https://github.com/patrol-jev/patrol-jev',lic:'MIT',
     frame:'현장 사진과 메모를 자리별로 묶어, 정해진 서식의 일지·결과보고서 문장으로 만드는 “서식 생성형” 틀',
     swap:['일지의 란(갈래)','자리마다 붙는 말과 그 말이 들어갈 란','일지 서식(머리글과 문장 틀)','고정 점검 지점과 자리 묶는 기준'],
     how:'원본은 사진을 AI로 읽는 웹앱(약 18,000줄)이에요. 코드를 읽어 보니 AI 없이 도는 “수동 모드”가 따로 있어서, 그 부분을 본떠 HTML 한 파일짜리로 만들어요.',
@@ -1930,7 +1988,7 @@ const EXT_TOOLS=[
    desc:'정부·지자체·공공기관의 지원사업 공고를 하루 두 번 자동으로 모아, 지역·대상·분야별로 걸러 볼 수 있게 해 줘요.',
    usage:'1. 열기를 누르고 지역(제주)과 대상(소상공인, 농업인 등)을 골라요.\n2. 공고를 비교해 보고 민원인에게 안내할 사업을 찾아요.\n3. 신청 조건과 기한은 반드시 원문 공고에서 다시 확인하세요.\n이럴 때 좋아요: "저 같은 사람이 받을 수 있는 지원이 있나요?"라는 문의에 답할 때.',
    tags:['지원사업','소상공인','농업인','민원','공고','파츠'],
-   part:{src:'https://gitlab.aigov.go.kr/dlwogud/jiwonmoa',lic:'MIT',
+   part:{type:'filter',src:'https://gitlab.aigov.go.kr/dlwogud/jiwonmoa',lic:'MIT',
     frame:'공공 자료에서 공고를 정기적으로 모아 지역·대상·분야로 거르고 비교하게 하는 “모아보기·필터형” 틀',
     swap:['모으는 대상 (우리 시 공고, 우리 과 보조사업 목록)','거르는 기준 (읍면동, 업종, 매출 규모, 대상)','안내 문구와 문의처'],
     how:'원본은 서버에서 정기적으로 모으는 구조예요. 여기서는 우리 과 사업 목록을 넣으면 조건별로 걸러 보여 주는 HTML 한 파일짜리 안내판으로 만들어요. 원본 코드는 공공 깃랩에 있어 점검이 끝나야 볼 수 있어요.',
@@ -1952,7 +2010,7 @@ const EXT_TOOLS=[
    desc:'제각각 적힌 주소 목록을 도로명주소 표준 형식으로 한꺼번에 정리해 줘요. 시설 현황을 지도와 엑셀로 보는 기능도 있어요.',
    usage:'1. 열기를 누르고 정리할 주소 목록을 붙여 넣거나 엑셀로 올려요.\n2. 표준 형식으로 바뀐 결과를 확인하고 내려받아요.\n주의: 이름·연락처가 함께 있는 명부는 주소 열만 따로 떼어 넣으세요.',
    tags:['주소','도로명주소','엑셀','데이터정리','파츠'],
-   part:{src:'https://github.com/chrisryugj/gjdong',lic:'MIT',
+   part:{type:'convert',src:'https://github.com/chrisryugj/gjdong',lic:'MIT',
     frame:'제각각인 입력값(주소)을 표준 형식으로 바꾸고, 결과를 표·지도·엑셀로 내는 “정리·변환형” 틀',
     swap:['정리할 항목과 표준 형식','묶는 기준 (행정동, 법정동, 읍면동)','결과 엑셀 양식'],
     how:'원본 코드가 MIT로 공개돼 있어 구조를 그대로 참고할 수 있어요. 주소 검색 API를 쓰는 부분은 키 발급이 필요할 수 있어요.',
@@ -1962,17 +2020,17 @@ const EXT_TOOLS=[
    desc:'국토교통부 고시 기준과 기상청 10년 실측 자료로 공공 건설공사의 적정 공사기간을 두 가지 방식으로 산정해 비교해 줘요.',
    usage:'1. 열기를 누르고 공사비, 시설물 유형, 연면적, 착수일, 지역을 넣어요.\n2. 준비·작업·비작업·정리 기간으로 나뉜 결과를 비교해요.\n3. 강우·강풍 같은 기준값을 바꿔 다시 계산하고 PDF로 받아요.\n이럴 때 좋아요: 공사 발주 전 공사기간이 적정한지 검토할 때.',
    tags:['공사','공사기간','계약','설계','파츠'],
-   part:{src:'https://github.com/seum8660/gongsagigan',lic:'',
+   part:{type:'calc',src:'https://github.com/seum8660/gongsagigan',lic:'',
     frame:'고시 기준값과 실측 자료로 기간을 계산하고, 두 방식의 결과를 나란히 비교해 보고서로 내는 “기준 계산형” 틀',
     swap:['계산 기준 (고시·지침 값)','지역 기상 자료 (제주 관측지점)','결과 보고서 양식'],
-    how:'라이선스 표시가 없어 코드는 쓰지 않고 계산 흐름만 본떠요. 기준값은 반드시 담당자가 원문을 붙여 넣어야 해요.',
+    how:'라이선스 표시가 없어 코드는 쓰지 않고 계산 흐름만 본떠요. 기준값은 원문에서만 가져와요 (법령은 AI가 찾아 확인받고, 내부 기준은 담당자가 붙여 넣어요).',
     ex:'제주 태풍·강우를 반영한 우리 시 공사기간 검토표',
-    fits:['제주 태풍·강우 일수를 반영한 공사기간 검토표','기상 악화로 인한 계약기간 연장일수 검토','지체상금 산정 (면책 일수 포함)','용역비 산출내역 검산 (노임단가·제경비 기준)']}},
+    fits:['제주 태풍·강우 일수를 반영한 공사기간 검토표','기상 악화로 인한 계약기간 연장일수 검토','지연배상금(지체상금) 산정 (면책 일수 포함)','용역비 산출내역 검산 (노임단가·제경비 기준)']}},
   {id:'ext-fireroute',cat:'data',kind:'web',source:'gov',env:'internet',pii:'none',authorNick:'창원소방본부 직원 개인 개발',name:'어돌잘돌 (다지점 출장 경로)',url:'https://fireroute.xogns1526.chatgpt.site/',
    desc:'여러 곳을 들러야 하는 출장에서 방문 순서와 차량별 경로, 예상 시간·거리를 실제 도로 기준으로 추천해 줘요. 원래는 소방시설 점검용이에요.',
    usage:'1. 열기를 누르고 방문할 곳과 출발·도착지를 골라요 (한 번에 30곳까지).\n2. 추천된 방문 순서와 경로, 예상 시간을 확인해요.\n3. 자주 쓰는 출장 구성은 저장해 두고 다시 불러와요.\n지금 목록은 창원 소방시설 기준이라, 우리 시에서 쓰려면 고쳐 쓰기가 필요해요.',
    tags:['출장','경로','현장점검','지도','파츠'],
-   part:{src:'',lic:'기타(비표준)',
+   part:{type:'route',src:'',lic:'기타(비표준)',
     frame:'방문 대상을 고르면 실제 도로 기준으로 방문 순서와 경로, 시간·거리를 추천하는 “동선 최적화형” 틀',
     swap:['방문 대상 목록 (우리 시 시설·업체 주소)','출발지 (청사, 읍면동 주민센터)','저장해 둘 출장 구성'],
     how:'원본 코드는 공공 깃랩에 있고 라이선스가 표준이 아니라 기능만 참고해요. 실제 도로 경로를 쓰려면 지도 서비스 키가 필요할 수 있어요.',
@@ -1982,7 +2040,7 @@ const EXT_TOOLS=[
    desc:'화성특례시가 만든 신규 공무원 지식창고를 광진구 직원이 자기 기관판으로 옮긴 도구예요. 다른 기관 도구를 우리 기관판으로 고쳐 쓰는 실제 사례이기도 해요.',
    usage:'1. 열기를 누르고 업무 용어나 궁금한 절차를 검색해요 (초성 검색도 돼요).\n2. 첫 30일 체크리스트로 신규자가 챙길 일을 확인해요.\n3. 광진구 기준이라 우리 시 규정과 다를 수 있어요.',
    tags:['신규자','인수인계','지식창고','검색','파츠'],
-   part:{src:'',lic:'',
+   part:{type:'kb',src:'',lic:'',
     frame:'업무 용어·절차·자주 묻는 질문을 모아 초성 검색으로 찾고, 신규자 체크리스트를 주는 “기관 지식창고형” 틀',
     swap:['업무 용어와 절차 설명','부서·연락처 안내','첫 30일 체크리스트','근거 조례·규칙'],
     how:'원본(화성시판) 코드는 공공 깃랩에 있어 점검이 끝나야 볼 수 있고 라이선스 표시도 확인되지 않아, 기능만 참고해요.',
@@ -3341,8 +3399,8 @@ function renderFinderOut(){
 // 적은 내용은 저장하지 않고, 이 화면을 열어 둔 동안만 기억한다
 const remixDraft={};
 // 🦴 모양별 뼈대: 이미 돌아가는 HTML 한 파일. AI는 맨 위 기준표(JSON)만 채운다.
-const SKELS={"judge": {"id": "skel-judge", "name": "판정형 뼈대", "file": "판정형-뼈대.html", "what": "조건을 넣으면 기준표의 규칙과 대조해 판정 도장, 근거 조문, 필요 서류를 보여 주는 HTML 한 파일이에요. 값이 비면 짐작하지 않고 “확인 필요”로 알려 주고, 검증 사례 비교와 완성 파일 내려받기가 들어 있어요. 인터넷 없이 더블클릭으로 열려요.", "schema": "{\n  \"title\": \"도구 이름\",\n  \"org\": \"우리 부서\",\n  \"basisDate\": \"기준일 (예: 2026. 11. 17. 시행 기준)\",\n  \"sources\": [\"근거 문서 이름\"],\n  \"fields\": [\n    {\"id\": \"영문_아이디\", \"label\": \"입력 항목 이름\", \"type\": \"number 또는 select 또는 yesno\", \"unit\": \"단위 (number일 때)\", \"options\": [\"select일 때 고를 값\"]}\n  ],\n  \"outcomes\": [\n    {\"id\": \"영문_아이디\", \"label\": \"판정 이름\", \"tone\": \"bad·warn·info·ok 중 하나 (불가·주의·안내·문제없음)\"}\n  ],\n  \"priority\": [\"여러 규칙에 걸리면 이기는 판정 id부터 차례로\"],\n  \"rules\": [\n    {\"id\": \"R1\", \"if\": 조건, \"then\": \"판정 id\", \"basis\": \"제○조제○항 · 별표 ○ 같은 근거\", \"note\": \"쉬운 설명\"}\n  ],\n  \"default\": {\"then\": \"어느 규칙에도 안 걸릴 때의 판정 id\", \"basis\": \"그렇게 보는 근거\"},\n  \"docs\": {\"판정 id\": [\"필요 서류\"]},\n  \"cases\": [\n    {\"name\": \"사례 이름\", \"input\": {\"입력 아이디\": 값}, \"expect\": \"담당자가 내린 판정 id (판단 보류였으면 check)\", \"by\": \"담당자 판단\"}\n  ]\n}\n조건 쓰는 법: {\"f\": \"입력 아이디\", \"op\": \"=, !=, >, >=, <, <=, in, notin, yes, no 중 하나\", \"v\": 비교값}\n여러 조건은 {\"all\": [조건, 조건]} (모두), {\"any\": [조건, 조건]} (하나라도), {\"not\": 조건} 으로 묶어요.\nyesno 항목의 값은 \"예\" 또는 \"아니요\"예요. 입력이 비어 있으면 도구가 짐작하지 않고 “확인 필요”로 보여 줘요.\n근거가 없는 경우의 판정을 default로 메우지 마세요. default를 빼면 규칙에 없는 조건은 “확인 필요”가 돼요."}};
-function skelCode(k){const S=SKELS[k],e=S&&document.getElementById(S.id);return e?e.textContent.replace(/<\\\/script/gi,'</script').replace(/<\\!--/g,'<!--').replace(/^\n/,''):'';}
+const SKELS={"judge": {"id": "skel-judge", "name": "판정형 뼈대", "file": "판정형-뼈대.html", "what": "조건을 넣으면 기준표의 규칙과 대조해 판정 도장, 근거 조문, 필요 서류를 보여 주는 HTML 한 파일이에요. 값이 비면 짐작하지 않고 “확인 필요”로 알려 주고, 검증 사례 비교와 완성 파일 내려받기가 들어 있어요. 인터넷 없이 더블클릭으로 열려요.", "schema": "{\n  \"title\": \"도구 이름\",\n  \"org\": \"우리 부서\",\n  \"basisDate\": \"기준일 (예: 2026. 11. 17. 시행 기준)\",\n  \"sources\": [\"근거 문서 이름\"],\n  \"fields\": [\n    {\"id\": \"영문_아이디\", \"label\": \"입력 항목 이름\", \"type\": \"number 또는 select 또는 yesno 또는 date 또는 elapsed\", \"unit\": \"단위 (number일 때)\", \"options\": [\"select일 때 고를 값\"]},\n    {\"id\": \"기간_아이디\", \"label\": \"기간 이름\", \"type\": \"elapsed\", \"from\": \"시작 date 항목 id\", \"to\": \"끝 date 항목 id\", \"unit\": \"년 또는 개월 또는 일\"}\n  ],\n  \"outcomes\": [\n    {\"id\": \"영문_아이디\", \"label\": \"판정 이름\", \"tone\": \"bad·warn·info·ok 중 하나 (불가·주의·안내·문제없음)\"}\n  ],\n  \"priority\": [\"여러 규칙에 걸리면 이기는 판정 id부터 차례로\"],\n  \"rules\": [\n    {\"id\": \"R1\", \"if\": 조건, \"then\": \"판정 id\", \"basis\": \"제○조제○항 · 별표 ○ 같은 근거\", \"note\": \"쉬운 설명\"}\n  ],\n  \"default\": {\"then\": \"어느 규칙에도 안 걸릴 때의 판정 id\", \"basis\": \"그렇게 보는 근거\"},\n  \"docs\": {\"판정 id\": [\"필요 서류\"]},\n  \"cases\": [\n    {\"name\": \"사례 이름\", \"input\": {\"입력 아이디\": 값}, \"expect\": \"담당자가 내린 판정 id (판단 보류였으면 check)\", \"by\": \"담당자 판단\"}\n  ]\n}\n조건 쓰는 법: {\"f\": \"입력 아이디\", \"op\": \"=, !=, >, >=, <, <=, in, notin, yes, no 중 하나\", \"v\": 비교값}\n여러 조건은 {\"all\": [조건, 조건]} (모두), {\"any\": [조건, 조건]} (하나라도), {\"not\": 조건} 으로 묶어요.\ndate 항목의 값은 \"2026-11-19\" 모양이에요. elapsed는 두 date 항목 사이 기간을 도구가 자동으로 계산해요 (만 ○년·만 ○개월은 기념일 당일부터 1 늘고, 일은 두 날짜의 차이). \"○년 이내\" 같은 기준은 사람이 계산하지 않게 elapsed로 만들고 숫자처럼 비교하세요.\n어떤 질문이 특정 경우에만 필요하면 그 항목에 \"when\": 조건 을 붙이세요. 그 조건일 때만 화면에 보이고, 숨은 질문의 값은 판정에 쓰지 않아요 (예: 지식서비스업일 때만 연구소 질문).\nyesno 항목의 값은 \"예\" 또는 \"아니요\"예요. 입력이 비어 있으면 도구가 짐작하지 않고 “확인 필요”로 보여 줘요.\n근거가 없는 경우의 판정을 default로 메우지 마세요. default를 빼면 규칙에 없는 조건은 “확인 필요”가 돼요."}};
+function skelCode(k){const S=SKELS[k],e=S&&document.getElementById(S.id);return e?e.textContent.replace(/<\\\/script/gi,'</script').replace(/<\\!--/g,'\x3c!--').replace(/^\n/,''):'';}
 /* HTML 파일 하나를 사용자에게 건넨다: 아티팩트 안에서는 플랫폼 저장 창, 웹에서는 내려받기, 둘 다 안 되면 코드 복사 */
 async function saveHtml(filename,code,okMsg){
   const fb=m=>copyText(code,m+' 메모장에 붙여 넣고 이름을 '+filename+'(으)로 저장하세요');
@@ -3379,6 +3437,9 @@ function rxHtmlCheck(code){
   const p=[];
   if(!/<\/html>\s*$/i.test(code.trim()))p.push('코드가 끝까지 오지 않았어요 (중간에 끊겼어요).');
   if(/(\/\/|\x3c!--|\/\*)\s*(\.\.\.|…|이하\s*(생략|동일)|나머지(는)?\s*(동일|생략|그대로)|기존(과)?\s*(동일|코드|그대로)|이전(과)?\s*(동일|그대로))/.test(code))p.push('코드 안에 “기존과 동일”, “생략” 같은 줄임 표시가 있어 그대로 쓰면 작동하지 않아요.');
+  // 지시문 약속 확인: 외부로 보내는 코드 금지, 참고용 문구 필수 (화면에 렌더링하지 않고 글자만 검사)
+  if(/\bfetch\s*\(|XMLHttpRequest|sendBeacon|new\s+WebSocket|<form[^>]+action\s*=\s*["']?https?:/i.test(code))p.push('입력한 내용을 인터넷으로 보낼 수 있는 코드가 들어 있어요. 이 도구는 아무것도 밖으로 보내지 않아야 해요.');
+  if(!/최종\s*판단은\s*담당자/.test(code))p.push('「참고용 도구이며 최종 판단은 담당자가 합니다」 문구가 없어요.');
   return p;
 }
 const RX_OPS=['=','!=','>','>=','<','<=','in','notin','yes','no'];
@@ -3387,9 +3448,11 @@ function rxCfgCheck(cfg){ // 뼈대 파일의 기준표 점검(parseCfg)과 같�
   if(!Array.isArray(cfg.fields)||!cfg.fields.length)e.push('입력 항목(fields)이 없어요.');
   if(!Array.isArray(cfg.outcomes)||!cfg.outcomes.length)e.push('판정 종류(outcomes)가 없어요.');
   if(!Array.isArray(cfg.rules))e.push('규칙(rules)이 없어요.');
-  (cfg.fields||[]).forEach(f=>{if(!f||!f.id||!f.label)e.push('이름(id·label)이 빠진 입력 항목이 있어요.');else if(f.type&&!['number','select','yesno'].includes(f.type))e.push(`입력 항목 ${f.id}의 type은 number·select·yesno 중 하나여야 해요.`);});
+  (cfg.fields||[]).forEach(f=>{if(!f||!f.id||!f.label)e.push('이름(id·label)이 빠진 입력 항목이 있어요.');else if(f.type&&!['number','select','yesno','date','elapsed'].includes(f.type))e.push(`입력 항목 ${f.id}의 type은 number·select·yesno·date·elapsed 중 하나여야 해요.`);
+    else if(f.type==='elapsed'){const tp=x=>((cfg.fields||[]).find(g=>g&&g.id===x)||{}).type;if(tp(f.from)!=='date'||tp(f.to)!=='date')e.push(`기간 항목 ${f.id}의 from·to는 date 항목이어야 해요.`);if(!['년','개월','일'].includes(f.unit))e.push(`기간 항목 ${f.id}의 unit은 년·개월·일 중 하나여야 해요.`);}});
   const walk=(c,w)=>{if(!c||typeof c!=='object')return;if(c.all||c.any)return (c.all||c.any).forEach(x=>walk(x,w));if(c.not)return walk(c.not,w);
     if(!ids.has(c.f))e.push(`${w}: 없는 입력 항목 「${c.f}」을 써요.`);if(!RX_OPS.includes(c.op))e.push(`${w}: 모르는 비교 「${c.op}」.`);};
+  (cfg.fields||[]).forEach(f=>{if(f&&f.when)walk(f.when,`입력 항목 ${f.id}의 when`);});
   (Array.isArray(cfg.rules)?cfg.rules:[]).forEach((r,n)=>{const w=`규칙 ${(r&&r.id)||n+1}`;if(!r)return;if(!outs.has(r.then))e.push(`${w}: 판정 「${r.then}」이 outcomes에 없어요.`);if(!r.basis)e.push(`${w}: 근거 조문(basis)이 없어요.`);walk(r.if,w);});
   if(cfg.default&&!outs.has(cfg.default.then))e.push(`기본 판정 「${cfg.default.then}」이 outcomes에 없어요.`);
   (Array.isArray(cfg.cases)?cfg.cases:[]).forEach((c,n)=>{if(!c)return;if(c.expect!=='check'&&!outs.has(c.expect))e.push(`사례 ${c.name||n+1}: 기대 판정 「${c.expect}」이 outcomes에 없어요.`);Object.keys(c.input||{}).forEach(k=>{if(!ids.has(k))e.push(`사례 ${c.name||n+1}: 없는 입력 항목 「${k}」.`);});});
@@ -3404,6 +3467,18 @@ function rxSkelFill(k,cfg){ // 뼈대 파일의 기준표 자리에 새 기준�
 }
 const rxFileName=t=>(String(t||'').replace(/[\\/:*?"<>|\n\r\t]/g,'').trim().slice(0,40)||'우리 업무 도구')+'.html';
 const LIC_OK=['MIT','Apache-2.0','ISC','CC0-1.0','Unlicense'];
+// 파츠 틀 유형: 파츠가 수백 개로 늘어도 동작 방식은 이 몇 가지예요. 새 파츠는 type만 붙이면
+// 판정 틀(skel)·추천 업무 기본값·점검 기준을 유형 단위로 물려받아요. (tools/parts_check.mjs가 이 표로 검사)
+const PART_TYPES={
+  judge:{label:'규칙 판정형',skel:'judge',fits:['제주 조례 기준 옥외광고물 허가·신고 판정','공장설립 승인 대상인지 등록만 하면 되는지 판정','수의계약 가능 여부(금액·사유별) 판정','창업기업 전력부담금 면제 대상 판정']},
+  check:{label:'점검·판정형 (자가점검)',skel:'judge',fits:['우리 부서 개인정보 보호 관리수준 자가점검','사이버보안 진단의 날 부서 보안 자체점검','수의계약 요청 서류(과업지시서·사유서·산출내역) 자가점검','지방보조금 정산 서류 항목별 점검']},
+  calc:{label:'기준 계산형',fits:['지연배상금(지체상금) 산정 (면책 일수 포함)','기상 악화로 인한 계약기간 연장일수 검토','용역비 산출내역 검산 (노임단가·제경비 기준)']},
+  form:{label:'서식 생성형',fits:['불법 광고물 정비 순찰일지','공사현장 안전점검 일지','재난 취약시설 점검 결과보고']},
+  filter:{label:'모아보기·필터형',fits:['우리 과 소상공인 지원사업을 업종·매출 조건별로 찾아 주는 안내판','읍면동 주민센터용 제주시 복지·지원사업 안내판']},
+  convert:{label:'정리·변환형',fits:['지원 대상 업체 명부 주소를 표준화하고 읍면동별로 묶기','민원 접수 주소를 행정동 기준으로 분류']},
+  route:{label:'동선 최적화형',fits:['읍면동 취약시설 재난 대비 점검 순서','지원사업 현장 실사 출장 계획']},
+  kb:{label:'기관 지식창고형',fits:['우리 과 업무 인수인계 지식창고','읍면동 민원 담당자용 자주 묻는 질문 모음']}
+};
 // 파츠별 추천 업무가 없을 때 보여 줄 분야별 예시
 const CAT_FITS={
   doc:['우리 과 보고서·기안문 양식에 맞춘 초안 작성기','보도자료를 우리 시 표기 규칙으로 다듬는 도구','회의록을 우리 회의 형식으로 정리하는 도구'],
@@ -3418,9 +3493,10 @@ function remixInfo(x,trusted){
   return {id:str(x.id,200)||'x',name:str(x.name,40)||'이름 없는 도구',by:str(x.by||x.authorNick,40),what:str(x.one||x.desc,300),usage:str(x.usage,1500),url:safeUrl(x.url),
     src:p?safeUrl(p.src):'',lic:p?str(p.lic,40):null,frame:p?str(p.frame,300):'',swap:(p&&Array.isArray(p.swap))?p.swap.map(v=>str(v,80)).filter(Boolean):[],how:p?str(p.how,300):'',ex:p?str(p.ex,120):'',
     spec:(p&&p.spec&&typeof p.spec==='object')?p.spec:null,
-    skel:(p&&typeof p.skel==='string'&&SKELS[p.skel])?p.skel:'',
+    skel:(p&&typeof p.skel==='string'&&SKELS[p.skel])?p.skel:((p&&PART_TYPES[p.type]&&SKELS[PART_TYPES[p.type].skel])?PART_TYPES[p.type].skel:''),
     inputs:(p&&Array.isArray(p.inputs))?p.inputs.filter(s=>s&&s.k&&s.label).slice(0,8):[],
-    ...(()=>{const f=(p&&Array.isArray(p.fits))?p.fits.map(v=>str(v,60)).filter(Boolean).slice(0,6):[];return f.length?{fits:f,fitsGeneric:false}:{fits:CAT_FITS[x.cat]||CAT_FITS.doc,fitsGeneric:true};})()};
+    ...(()=>{const f=(p&&Array.isArray(p.fits))?p.fits.map(v=>str(v,60)).filter(Boolean).slice(0,6):[];const T=p&&PART_TYPES[p.type];return f.length?{fits:f,fitsGeneric:false}:(T?{fits:T.fits,fitsGeneric:true}:{fits:CAT_FITS[x.cat]||CAT_FITS.doc,fitsGeneric:true});})(),
+    type:(p&&PART_TYPES[p.type])?p.type:''};
 }
 function licState(lic){
   const no='원본 코드를 그대로 복사하지 말고, 기능과 화면 구성만 참고해서 처음부터 새로 짜 줘.';
@@ -3461,7 +3537,11 @@ function remixPrompt(i,d){
     '기준일과 “참고용 도구이며 최종 판단은 담당자가 합니다”라는 문구가 항상 보이게 해 줘.',
     bot?'결과물은 ChatGPT의 GPTs나 Claude 프로젝트에 넣을 지침(시스템 프롬프트) 한 편으로 만들어 줘. 지침 안에 기준 표와 근거 조문을 그대로 담아 줘.':'기준값은 코드 맨 위 한곳에 표로 모아 두고, 조례가 바뀌면 그 표만 고치면 되게 해 줘.',
     bot?'사용자가 개인정보를 넣으려 하면 지우고 다시 달라고 안내하게 해 줘.':'HTML 파일 하나로 만들어 줘. 설치나 서버 없이 더블클릭하면 열려야 하고, 입력한 내용은 저장하거나 외부로 보내지 마.',
-    bot?'':'이름·주민번호·연락처 같은 개인정보를 넣는 칸은 만들지 마. 꼭 필요하면 먼저 나에게 물어봐.'
+    bot?'':'이름·주민번호·연락처 같은 개인정보를 넣는 칸은 만들지 마. 꼭 필요하면 먼저 나에게 물어봐.',
+    // 시험 제작(지연배상금 계산)에서 나온 보완: 계산형 도구가 자주 틀리는 곳
+    '금액·기간을 계산하면 단수 처리(원 미만 버림 등), 한도, 기간을 세는 방식(첫날·마지막 날 포함 여부)을 근거 조문이나 우리 기준으로 확인하고, 근거가 없으면 나에게 물어봐. 결과 옆에 계산식을 숫자 그대로 풀어서 보여 줘.',
+    bot?'챗봇은 날짜 세기와 금액 계산을 틀리기 쉬워. 계산이 들어가면 지침에 「계산 과정을 단계별로 숫자 그대로 보여 주고, 최종 금액·기간은 담당자가 확인하라」를 넣어 줘. 정확한 계산이 업무의 핵심이면 챗봇 대신 HTML 도구로 만들자고 나에게 먼저 말해 줘.':'날짜를 입력받는 칸은 달력으로 고르게 하고, 기간은 사람이 세지 않게 도구가 계산해 줘.',
+    bot?'':'[정답을 아는 처리 사례]를 도구 안 「검증 사례」 칸에 넣어 두고, 버튼 하나로 다시 돌려 담당자 판단·결과와 같은지 ✔/✖로 보여 줘. 기준을 고친 뒤에도 바로 다시 확인할 수 있게.'
   ].filter(Boolean).map((t,n)=>`${n+1}. ${t}`).join('\n');
   if(i.skel&&!bot){
     const S=SKELS[i.skel];
@@ -3495,7 +3575,7 @@ ${cases}
 2. 원본 파츠에 들어 있던 다른 기관의 기준(조례 이름, 수치, 서식, 기관명)은 하나도 남기지 마. 내 업무가 원본과 분야가 다르면 「바꿔 끼울 부분」은 무시하고 판정 흐름만 본떠.
 3. 모든 규칙과 default에 basis(근거 조문)를 적어 줘. 근거를 모르면 그 규칙을 만들지 말고 물어봐.
 4. "example" 항목은 넣지 마. basisDate(기준일)는 꼭 넣어 줘.
-5. 입력 항목 type은 number·select·yesno만 써. 이름·주민번호·연락처 같은 개인정보 항목은 만들지 마.
+5. 입력 항목 type은 number·select·yesno·date·elapsed만 써. 날짜로 기간을 따지는 기준(○년 이내, ○일 이내)은 사람이 직접 계산하지 않게 date 두 개와 elapsed로 만들어. 이름·주민번호·연락처 같은 개인정보 항목은 만들지 마.
 6. [정답을 아는 처리 사례]는 cases에 넣어 줘. 이름·주소 같은 개인정보는 빼고 조건과 판정만 넣어.
 
 [만드는 순서]
@@ -3770,6 +3850,7 @@ function openRemix(x,trusted,want){
         else{delete cfg.example;errs=rxCfgCheck(cfg);if(!errs.length){code=rxSkelFill(i.skel,cfg);name=rxFileName(cfg.title);if(!code)errs=['판정 도구 틀을 찾지 못했어요. 화면을 새로고침한 뒤 다시 해 주세요.'];}}
       }else{
         code=rxPickHtml(raw);errs=rxHtmlCheck(code);
+        if(code&&!errs.length&&LIC_OK.includes(i.lic)&&!code.includes(i.lic))errs.push(`원본 파츠의 라이선스(${i.lic}) 표시가 빠졌어요. 화면 아래쪽에 원본 이름·만든 곳·라이선스를 적어야 해요.`);
         const t=/<title[^>]*>([^<]*)<\/title>/i.exec(code||'');name=rxFileName(t&&t[1]);
       }
       if(errs.length){
@@ -3781,7 +3862,7 @@ function openRemix(x,trusted,want){
       await saveHtml(name,code,'완성 파일을 받았어요. 더블클릭해서 열어 보세요');
       msg.append(h('p',{class:'rx-good',text:isSkel
         ?'✅ 「'+name+'」을 만들었어요.\n더블클릭해 열면 「검증 사례」 칸에서 담당자 판단과 같은지 바로 보여요. 다르면 그 내용을 AI에게 말해 고친 뒤, 새 답변을 다시 붙여 넣으면 돼요.'
-        :'✅ 「'+name+'」을 만들었어요.\n더블클릭해 열고, 실제로 처리했던 사례를 하나씩 넣어 담당자 판단과 같은지 확인하세요. 다르면 AI에게 말해 고친 뒤, 새 답변을 다시 붙여 넣으면 돼요.'}));
+        :'✅ 「'+name+'」을 만들었어요.\n더블클릭해 열고 「검증 사례」가 모두 ✔인지, 실제로 처리했던 사례를 넣어 담당자 판단과 같은지 확인하세요. 다르면 AI에게 말해 고친 뒤, 새 답변을 다시 붙여 넣으면 돼요.'+(/\x3cscript[^>]+src\s*=\s*["']?https?:/i.test(code)?'\nℹ 인터넷에서 불러오는 부품을 써서, 인터넷이 안 되는 PC에서는 열리지 않을 수 있어요.':'')}));
     };
     return h('div',{class:'rx-make'},
       h('b',{text:'⑥ AI 답변으로 완성 파일 만들기'}),
@@ -4446,7 +4527,7 @@ const MK_KIT=[
    need:['README의 실행 방법 확인','제주 기준으로 쓰려면 제주특별자치도 옥외광고물 조례 기준으로 바꾸는 작업'],
    steps:['깃허브에서 README를 읽고 어떤 구조인지 먼저 살펴봐요.','AI에게 "이 프로젝트를 제주 조례 기준으로 바꾸려면 무엇을 고쳐야 해?"라고 물어보며 시작해요.'],
    warn:'강남구 기준으로 만들어져 있어 그대로 쓰면 판정이 틀릴 수 있어요.',
-   part:{src:'https://github.com/kangjinkui/signcheck',lic:'',skel:'judge',
+   part:{type:'judge',src:'https://github.com/kangjinkui/signcheck',lic:'',skel:'judge',
     frame:'광고물 조건(종류·크기·층수 등)을 넣으면 규칙표와 대조해 허가·신고·불가를 가르고, 수수료·서류·근거 조문을 알려 주는 “규칙 판정형” 틀',
     swap:['광고물 종류별 판정 규칙 (원본은 강남구 기준)','수수료 표','제출 서류 목록','근거 조문'],
     how:'원본은 서버와 데이터베이스가 필요한 프로그램이고 라이선스 표시가 없어요. 코드는 가져오지 않고, 판정 흐름만 본떠 HTML 한 파일짜리 도구로 새로 만들어요.',
